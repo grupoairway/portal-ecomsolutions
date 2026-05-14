@@ -1,0 +1,248 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+/* HEADER */
+.header {
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.headerLogo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerLogoIcon {
+  width: 32px;
+  height: 32px;
+  background: var(--color-blue);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headerLogoText {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerUser {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.headerNombre {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.badgeAcceso {
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-blue-light);
+  color: var(--color-blue);
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.btnLogout {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: none;
+  border: 1px solid var(--color-border);
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnLogout:hover {
+  color: var(--color-danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+/* MAIN CONTENT */
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* SECTIONS */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+}
+
+.sectionCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+/* METRICS GRID */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* GRAFICOS GRID */
+.graficosGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .graficosGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .headerNombre {
+    display: none;
+  }
+
+  .badgeAcceso {
+    display: none;
+  }
+}
+
+/* ACCESOS RAPIDOS */
+.accesosGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .accesosGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.accesoCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  transition: all 0.15s;
+  color: var(--color-text);
+}
+
+.accesoCard:hover {
+  border-color: var(--color-blue-border);
+  background: var(--color-blue-light);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.accesoIcon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-blue-light);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.accesoInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.accesoTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.accesoDesc {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.accesoArrow {
+  font-size: 18px;
+  color: var(--color-blue);
+}
+
+/* EMPTY STATE */
+.emptyData {
+  background: var(--color-white);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.emptyData strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 15px;
+  margin-bottom: 6px;
+}

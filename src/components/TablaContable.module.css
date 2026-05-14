@@ -1,0 +1,133 @@
+.wrapper {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.titulo {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.thDesc,
+.thNum {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thNum {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.row {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.rowColapsable {
+  cursor: pointer;
+}
+
+.rowColapsable:hover {
+  background: #f9fafb;
+}
+
+.rowGrupo {
+  background: #f8faff;
+}
+
+.rowGrupo td {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.rowSubgrupo td {
+  font-weight: 600;
+  color: #374151;
+}
+
+.rowTotal {
+  background: var(--color-blue-light);
+}
+
+.rowTotal td {
+  font-weight: 700;
+  color: var(--color-blue-dark);
+}
+
+.rowCuenta td {
+  color: #374151;
+}
+
+.tdDesc {
+  padding: 10px 16px;
+}
+
+.tdNum {
+  padding: 10px 16px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.indent {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.chevron {
+  font-size: 9px;
+  color: var(--color-muted);
+  flex-shrink: 0;
+  width: 12px;
+}
+
+.codigo {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-family: monospace;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.descripcion {
+  font-size: 13px;
+}
+
+.descripcionCuenta {
+  font-size: 12px;
+}
+
+.negativo {
+  color: var(--color-danger);
+}
+
+.positivo {
+  color: var(--color-success);
+}

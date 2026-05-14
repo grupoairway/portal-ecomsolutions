@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell($rng = New-Object System.Security.Cryptography.RNGCryptoServiceProvider; $bytes = New-Object byte[] 32; $rng.GetBytes\\($bytes\\); [Convert]::ToBase64String\\($bytes\\))",
+      "PowerShell(Get-Process *)"
+    ]
+  }
+}
