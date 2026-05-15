@@ -99,16 +99,20 @@ export async function obtenerVencimientosCliente(
 export async function getInformesCliente(
   clienteId: string,
 ): Promise<import('./informe-tipos').InformeNotion[]> {
+  console.log('Buscando informes para clienteId:', clienteId)
+  console.log('NOTION_INFORMES_DB:', process.env.NOTION_INFORMES_DB)
+
   const response = await notion.databases.query({
     database_id: process.env.NOTION_INFORMES_DB!,
     filter: {
       and: [
         { property: 'Cliente', relation: { contains: clienteId } },
-        { property: 'Publicado', checkbox: { equals: true } },
       ],
     },
     sorts: [{ property: 'Fecha subida', direction: 'descending' }],
   });
+
+  console.log('Informes encontrados:', response.results.length)
 
   return response.results.map((page) => {
     const p = page as unknown as {

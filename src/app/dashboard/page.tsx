@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { decodeSession } from '@/lib/session';
-import { obtenerVencimientosCliente, getDocumentosCliente, getInformesCliente } from '@/lib/notion';
+import { obtenerVencimientosCliente, getDocumentosCliente, getInformesCliente, buscarClientePorEmail } from '@/lib/notion';
 import type { DocumentoNotion } from '@/lib/notion';
 import VencimientosList from '@/components/VencimientosList';
 import GraficoBarras from '@/components/GraficoBarras';
@@ -32,6 +32,19 @@ export default async function DashboardPage() {
   if (!sessionCookie) redirect('/');
   const session = decodeSession(sessionCookie.value);
   if (!session) redirect('/');
+
+  console.log('=== DASHBOARD ===')
+  console.log('Session cookie value (primeros 100 chars):', sessionCookie?.value?.substring(0, 100))
+  console.log('clienteId decodificado:', session?.clienteId)
+  console.log('email decodificado:', session?.email)
+  console.log('nombre decodificado:', session?.nombre)
+
+  // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
+  let nombreCliente = session.nombre
+  if (!nombreCliente || nombreCliente === 'Cliente') {
+    const clienteNotion = await buscarClientePorEmail(session.email).catch(() => null)
+    if (clienteNotion?.nombre) nombreCliente = clienteNotion.nombre
+  }
 
   const [vencimientos, documentos, informes] = await Promise.all([
     obtenerVencimientosCliente(session.clienteId).catch(() => []),

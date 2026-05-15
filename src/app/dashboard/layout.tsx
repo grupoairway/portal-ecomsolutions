@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { decodeSession } from '@/lib/session';
+import { buscarClientePorEmail } from '@/lib/notion';
 import DashboardNav from '@/components/DashboardNav';
 import styles from './dashboard.module.css';
 
@@ -20,6 +21,13 @@ export default async function DashboardLayout({
   const session = decodeSession(sessionCookie.value);
   if (!session) redirect('/');
 
+  // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
+  let nombreMostrar = session.nombre
+  if (!nombreMostrar || nombreMostrar === 'Cliente') {
+    const clienteNotion = await buscarClientePorEmail(session.email).catch(() => null)
+    if (clienteNotion?.nombre) nombreMostrar = clienteNotion.nombre
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -37,7 +45,7 @@ export default async function DashboardLayout({
 
           <div className={styles.headerRight}>
             <div className={styles.headerUser}>
-              <span className={styles.headerNombre}>Hola, {session.nombre}</span>
+              <span className={styles.headerNombre}>Hola, {nombreMostrar}</span>
               <span className={styles.badgeAcceso}>Último acceso: hoy</span>
             </div>
             <form action={logout}>
