@@ -15,6 +15,23 @@ export interface VencimientoNotion {
   estado: 'Pendiente' | 'Presentado' | 'Urgente';
 }
 
+export type TipoDocumento =
+  | 'Modelos presentados'
+  | 'Escrituras y contratos'
+  | 'Nóminas'
+  | 'Notificaciones'
+  | 'Otros';
+
+export interface DocumentoNotion {
+  id: string;
+  nombre: string;
+  tipo: TipoDocumento;
+  fecha: string | null;
+  urlDrive: string | null;
+  descripcion: string | null;
+  ejercicio: string | null;
+}
+
 export async function buscarClientePorEmail(
   email: string,
 ): Promise<ClienteNotion | null> {
@@ -73,6 +90,45 @@ export async function obtenerVencimientosCliente(
         | 'Pendiente'
         | 'Presentado'
         | 'Urgente',
+    };
+  });
+}
+
+export async function getDocumentosCliente(
+  clienteId: string,
+): Promise<DocumentoNotion[]> {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_DOCUMENTOS_DB!,
+    filter: {
+      and: [
+        { property: 'Cliente', relation: { contains: clienteId } },
+        { property: 'Visible en portal', checkbox: { equals: true } },
+      ],
+    },
+    sorts: [{ property: 'Fecha', direction: 'descending' }],
+  });
+
+  return response.results.map((page) => {
+    const p = page as unknown as {
+      id: string;
+      properties: {
+        Nombre: { title: Array<{ plain_text: string }> };
+        Tipo: { select: { name: string } | null };
+        Fecha: { date: { start: string } | null };
+        'URL Drive': { url: string | null };
+        'Descripción': { rich_text: Array<{ plain_text: string }> };
+        Ejercicio: { select: { name: string } | null };
+      };
+    };
+
+    return {
+      id: p.id,
+      nombre: p.properties.Nombre.title[0]?.plain_text ?? '',
+      tipo: (p.properties.Tipo.select?.name ?? 'Otros') as TipoDocumento,
+      fecha: p.properties.Fecha.date?.start ?? null,
+      urlDrive: p.properties['URL Drive'].url ?? null,
+      descripcion: p.properties['Descripción'].rich_text[0]?.plain_text ?? null,
+      ejercicio: p.properties.Ejercicio.select?.name ?? null,
     };
   });
 }

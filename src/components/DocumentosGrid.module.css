@@ -1,0 +1,199 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* FILTROS */
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filtroGrupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filtroBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  background: var(--color-white);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filtroBtn:hover {
+  border-color: var(--color-blue-border);
+  color: var(--color-blue);
+  background: var(--color-blue-light);
+}
+
+.filtroBtnActivo {
+  background: var(--color-blue);
+  border-color: var(--color-blue);
+  color: var(--color-white);
+}
+
+.filtroBtnActivo:hover {
+  background: var(--color-blue-dark);
+  border-color: var(--color-blue-dark);
+  color: var(--color-white);
+}
+
+.filtroBtnEjercicio {
+  padding: 7px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.filtroBtnIcono {
+  font-size: 12px;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CARD */
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardIcono {
+  font-size: 24px;
+}
+
+.badgeEjercicio {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.cardNombre {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.cardTipo {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardFecha {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.cardFooter {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.btnDescargar {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--color-blue);
+  color: var(--color-white);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.btnDescargar:hover {
+  background: var(--color-blue-dark);
+}
+
+.btnNoDisponible {
+  display: inline-block;
+  padding: 8px 16px;
+  background: var(--color-bg);
+  color: var(--color-muted);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  cursor: not-allowed;
+}
+
+/* EMPTY STATE */
+.empty {
+  background: var(--color-white);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 48px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyIcono {
+  font-size: 36px;
+}
+
+.emptyTexto {
+  font-size: 15px;
+  color: var(--color-muted);
+}

@@ -1,0 +1,38 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.item:hover {
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.itemActive {
+  color: var(--color-blue);
+  background: var(--color-blue-light);
+  font-weight: 600;
+}
+
+.itemActive:hover {
+  color: var(--color-blue-dark);
+  background: var(--color-blue-light);
+}
+
+.icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.label {
+  line-height: 1;
+}

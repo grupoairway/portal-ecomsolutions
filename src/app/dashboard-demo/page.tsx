@@ -5,13 +5,23 @@ import MetricCard from '@/components/MetricCard';
 import VencimientosList from '@/components/VencimientosList';
 import GraficoBarras from '@/components/GraficoBarras';
 import GraficoLineas from '@/components/GraficoLineas';
-import type { VencimientoNotion } from '@/lib/notion';
+import DashboardNav from '@/components/DashboardNav';
+import DocumentosGrid from '@/components/DocumentosGrid';
+import type { VencimientoNotion, DocumentoNotion } from '@/lib/notion';
 import styles from '../dashboard/dashboard.module.css';
 
 const VENCIMIENTOS: VencimientoNotion[] = [
   { id: '1', nombre: 'Modelo 303 - IVA 2T', fecha: '2026-07-20', estado: 'Pendiente' },
   { id: '2', nombre: 'Modelo 130 - IRPF 2T', fecha: '2026-07-20', estado: 'Pendiente' },
   { id: '3', nombre: 'Modelo 111 - Retenciones', fecha: '2026-04-20', estado: 'Presentado' },
+];
+
+const DOCUMENTOS: DocumentoNotion[] = [
+  { id: 'd1', nombre: 'Modelo 303 - IVA 1T 2026', tipo: 'Modelos presentados', fecha: '2026-04-20', urlDrive: '#', descripcion: null, ejercicio: '2026' },
+  { id: 'd2', nombre: 'Modelo 130 - IRPF 1T 2026', tipo: 'Modelos presentados', fecha: '2026-04-20', urlDrive: '#', descripcion: null, ejercicio: '2026' },
+  { id: 'd3', nombre: 'Escritura de constitución', tipo: 'Escrituras y contratos', fecha: '2025-01-15', urlDrive: '#', descripcion: null, ejercicio: '2025' },
+  { id: 'd4', nombre: 'Nómina Enero 2026', tipo: 'Nóminas', fecha: '2026-01-31', urlDrive: '#', descripcion: null, ejercicio: '2026' },
+  { id: 'd5', nombre: 'Notificación AEAT - Renta 2024', tipo: 'Notificaciones', fecha: '2026-03-10', urlDrive: '#', descripcion: null, ejercicio: '2026' },
 ];
 
 const DATOS_BARRAS = [
@@ -59,6 +69,12 @@ export default function DashboardDemoPage() {
             </button>
           </div>
         </div>
+
+        <nav className={styles.nav}>
+          <div className={styles.navInner}>
+            <DashboardNav />
+          </div>
+        </nav>
       </header>
 
       {/* MAIN */}
@@ -112,6 +128,44 @@ export default function DashboardDemoPage() {
             <GraficoBarras datos={DATOS_BARRAS} titulo="Ingresos y gastos por período" />
             <GraficoLineas datos={DATOS_LINEAS} titulo="Resultado del ejercicio" />
           </div>
+        </section>
+
+        {/* DOCUMENTOS RECIENTES */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Documentos recientes</h2>
+            <Link href="/dashboard/documentos" className={styles.docVerTodos}>
+              Ver todos →
+            </Link>
+          </div>
+          <div className={styles.sectionCard}>
+            <div className={styles.docsRecentesGrid}>
+              {DOCUMENTOS.slice(0, 3).map((doc) => (
+                <div key={doc.id} className={styles.docRecienteItem}>
+                  <div className={styles.docRecienteIcono}>
+                    {({ 'Modelos presentados': '📄', 'Escrituras y contratos': '📋', 'Nóminas': '💰', 'Notificaciones': '🔔', 'Otros': '📁' } as Record<string, string>)[doc.tipo] ?? '📁'}
+                  </div>
+                  <div className={styles.docRecienteInfo}>
+                    <div className={styles.docRecienteNombre}>{doc.nombre}</div>
+                    <div className={styles.docRecienteMeta}>{doc.tipo}</div>
+                  </div>
+                  {doc.urlDrive && doc.urlDrive !== '#' && (
+                    <a href={doc.urlDrive} target="_blank" rel="noopener noreferrer" className={styles.docRecienteLink}>
+                      Abrir →
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* DOCUMENTOS COMPLETOS */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Mis documentos</h2>
+          </div>
+          <DocumentosGrid documentos={DOCUMENTOS} />
         </section>
 
         {/* ACCESOS RÁPIDOS */}
