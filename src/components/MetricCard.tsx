@@ -3,7 +3,7 @@ import styles from './MetricCard.module.css';
 interface MetricCardProps {
   icono: string;
   label: string;
-  valor: number;
+  valor?: number;
   variacion?: number | null;
   formato?: 'euros' | 'numero';
 }
@@ -24,6 +24,7 @@ export default function MetricCard({
   formato = 'euros',
 }: MetricCardProps) {
   const isPositive = variacion !== null && variacion !== undefined && variacion >= 0;
+  const valorValido = valor !== undefined && valor !== null;
 
   return (
     <div className={styles.card}>
@@ -36,7 +37,9 @@ export default function MetricCard({
         )}
       </div>
       <div className={styles.valor}>
-        {formato === 'euros' ? formatearEuros(valor) : valor.toLocaleString('es-ES')}
+        {valorValido
+          ? (formato === 'euros' ? formatearEuros(valor!) : valor!.toLocaleString('es-ES'))
+          : '—'}
       </div>
       <div className={styles.label}>{label}</div>
     </div>

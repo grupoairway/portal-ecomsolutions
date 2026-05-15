@@ -52,17 +52,17 @@ export default function FinancieroSection({ informes }: Props) {
         <div className={styles.empty}>Sin datos financieros para este período.</div>
       ) : (
         <div className={styles.grid}>
-          <MetricCard icono="💰" label="Ingresos" valor={metricas.ingresos.actual} variacion={metricas.ingresos.variacion} />
-          <MetricCard icono="👥" label="Gastos de personal" valor={metricas.gastos_personal.actual} variacion={metricas.gastos_personal.variacion} />
-          <MetricCard icono="📋" label="Otros gastos" valor={metricas.otros_gastos.actual} variacion={metricas.otros_gastos.variacion} />
-          <MetricCard icono="⚙️" label="Resultado de explotación" valor={metricas.resultado_explotacion.actual} variacion={metricas.resultado_explotacion.variacion} />
-          <MetricCard icono="📊" label="Resultado del ejercicio" valor={metricas.resultado_ejercicio.actual} variacion={metricas.resultado_ejercicio.variacion} />
-          <MetricCard icono="🏦" label="Total Activo" valor={metricas.total_activo.actual} variacion={metricas.total_activo.variacion} />
-          <MetricCard icono="💵" label="Caja disponible" valor={metricas.caja.actual} variacion={metricas.caja.variacion} />
-          <MetricCard icono="🧾" label="Clientes deudores" valor={metricas.clientes_deudores.actual} variacion={metricas.clientes_deudores.variacion} />
-          <MetricCard icono="🏛️" label="Patrimonio Neto" valor={metricas.patrimonio_neto.actual} variacion={metricas.patrimonio_neto.variacion} />
-          <MetricCard icono="⏱️" label="Deudas a corto plazo" valor={metricas.deudas_cp.actual} variacion={metricas.deudas_cp.variacion} />
-          <MetricCard icono="🏪" label="Proveedores" valor={metricas.proveedores.actual} variacion={metricas.proveedores.variacion} />
+          <MetricCard icono="💰" label="Ingresos" valor={metricas.ingresos?.actual} variacion={metricas.ingresos?.variacion} />
+          <MetricCard icono="👥" label="Gastos de personal" valor={metricas.gastos_personal?.actual} variacion={metricas.gastos_personal?.variacion} />
+          <MetricCard icono="📋" label="Otros gastos" valor={metricas.otros_gastos?.actual} variacion={metricas.otros_gastos?.variacion} />
+          <MetricCard icono="⚙️" label="Resultado de explotación" valor={metricas.resultado_explotacion?.actual} variacion={metricas.resultado_explotacion?.variacion} />
+          <MetricCard icono="📊" label="Resultado del ejercicio" valor={metricas.resultado_ejercicio?.actual} variacion={metricas.resultado_ejercicio?.variacion} />
+          <MetricCard icono="🏦" label="Total Activo" valor={metricas.total_activo?.actual} variacion={metricas.total_activo?.variacion} />
+          <MetricCard icono="💵" label="Caja disponible" valor={metricas.caja?.actual} variacion={metricas.caja?.variacion} />
+          <MetricCard icono="🧾" label="Clientes deudores" valor={metricas.clientes_deudores?.actual} variacion={metricas.clientes_deudores?.variacion} />
+          <MetricCard icono="🏛️" label="Patrimonio Neto" valor={metricas.patrimonio_neto?.actual} variacion={metricas.patrimonio_neto?.variacion} />
+          <MetricCard icono="⏱️" label="Deudas a corto plazo" valor={metricas.deudas_cp?.actual} variacion={metricas.deudas_cp?.variacion} />
+          <MetricCard icono="🏪" label="Proveedores" valor={metricas.proveedores?.actual} variacion={metricas.proveedores?.variacion} />
         </div>
       )}
     </div>

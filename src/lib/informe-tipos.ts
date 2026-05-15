@@ -22,15 +22,43 @@ export interface InformeNotion {
   pygJSON: string | null;
 }
 
-export function parseMetricas(metricasJSON: string): MetricasInforme | null {
-  console.log('Parseando métricas, input length:', metricasJSON?.length)
-  console.log('Input preview:', metricasJSON?.substring(0, 100))
+const defaultMetrica = { actual: 0, anterior: 0, variacion: 0 };
+
+const defaultMetricas: MetricasInforme = {
+  ingresos: defaultMetrica,
+  gastos_personal: defaultMetrica,
+  otros_gastos: defaultMetrica,
+  resultado_explotacion: defaultMetrica,
+  resultado_ejercicio: defaultMetrica,
+  total_activo: defaultMetrica,
+  caja: defaultMetrica,
+  clientes_deudores: defaultMetrica,
+  patrimonio_neto: defaultMetrica,
+  deudas_cp: defaultMetrica,
+  proveedores: defaultMetrica,
+};
+
+export function parseMetricas(json: string): MetricasInforme {
+  console.log('Parseando métricas, input length:', json?.length)
+  console.log('Input preview:', json?.substring(0, 100))
   try {
-    const parsed = JSON.parse(metricasJSON) as MetricasInforme;
-    console.log('Parse OK, claves:', Object.keys(parsed))
-    return parsed;
+    const data = JSON.parse(json) as Partial<MetricasInforme>;
+    console.log('Parse OK, claves:', Object.keys(data))
+    return {
+      ingresos: data.ingresos || defaultMetrica,
+      gastos_personal: data.gastos_personal || defaultMetrica,
+      otros_gastos: data.otros_gastos || defaultMetrica,
+      resultado_explotacion: data.resultado_explotacion || defaultMetrica,
+      resultado_ejercicio: data.resultado_ejercicio || defaultMetrica,
+      total_activo: data.total_activo || defaultMetrica,
+      caja: data.caja || defaultMetrica,
+      clientes_deudores: data.clientes_deudores || defaultMetrica,
+      patrimonio_neto: data.patrimonio_neto || defaultMetrica,
+      deudas_cp: data.deudas_cp || defaultMetrica,
+      proveedores: data.proveedores || defaultMetrica,
+    };
   } catch (e) {
     console.log('Parse ERROR:', e)
-    return null;
+    return defaultMetricas;
   }
 }
