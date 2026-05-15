@@ -9,17 +9,18 @@ interface TablaContableProps {
   titulo?: string;
 }
 
-function formatearEuros(n: number): string {
+function formatearEuros(n: unknown): string {
+  const num = typeof n === 'number' && !isNaN(n) ? n : 0;
   return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(n);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 }
 
-function formatearVariacion(v: number | null): string {
-  if (v === null) return '—';
-  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+function formatearVariacion(v: unknown): string {
+  if (v === null || v === undefined) return '—';
+  const num = typeof v === 'number' && !isNaN(v) ? v : 0;
+  return `${num >= 0 ? '+' : ''}${num.toFixed(1)}%`;
 }
 
 export default function TablaContable({ filas, titulo }: TablaContableProps) {
@@ -37,7 +38,6 @@ export default function TablaContable({ filas, titulo }: TablaContableProps) {
     });
   }
 
-  // Determina si una fila está visible en función de los grupos colapsados
   let grupoActual: string | null = null;
   let subgrupoActual: string | null = null;
 
@@ -52,10 +52,7 @@ export default function TablaContable({ filas, titulo }: TablaContableProps) {
       if (grupoActual && colapsados.has(grupoActual)) return false;
       return true;
     }
-    if (fila.tipo === 'total') {
-      return true;
-    }
-    // cuenta
+    if (fila.tipo === 'total') return true;
     if (grupoActual && colapsados.has(grupoActual)) return false;
     if (subgrupoActual && colapsados.has(subgrupoActual)) return false;
     return true;
@@ -78,7 +75,10 @@ export default function TablaContable({ filas, titulo }: TablaContableProps) {
             {filasVisibles.map((fila, i) => {
               const esColapsable = fila.tipo === 'grupo' || fila.tipo === 'subgrupo';
               const estaColapsado = colapsados.has(fila.codigo);
-              const variacion = fila.variacion;
+
+              const valorActual = typeof fila.valorActual === 'number' ? fila.valorActual : 0;
+              const valorAnterior = typeof fila.valorAnterior === 'number' ? fila.valorAnterior : 0;
+              const variacion = typeof fila.variacion === 'number' ? fila.variacion : null;
 
               return (
                 <tr
@@ -112,19 +112,11 @@ export default function TablaContable({ filas, titulo }: TablaContableProps) {
                       )}
                     </span>
                   </td>
-                  <td
-                    className={`${styles.tdNum} ${
-                      fila.valorActual < 0 ? styles.negativo : ''
-                    }`}
-                  >
-                    {formatearEuros(fila.valorActual)}
+                  <td className={`${styles.tdNum} ${valorActual < 0 ? styles.negativo : ''}`}>
+                    {formatearEuros(valorActual)}
                   </td>
-                  <td
-                    className={`${styles.tdNum} ${
-                      fila.valorAnterior < 0 ? styles.negativo : ''
-                    }`}
-                  >
-                    {formatearEuros(fila.valorAnterior)}
+                  <td className={`${styles.tdNum} ${valorAnterior < 0 ? styles.negativo : ''}`}>
+                    {formatearEuros(valorAnterior)}
                   </td>
                   <td
                     className={`${styles.tdNum} ${
