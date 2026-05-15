@@ -26,6 +26,25 @@ const DOCUMENTOS: DocumentoNotion[] = [
   { id: 'd5', nombre: 'Notificación AEAT - Renta 2024', tipo: 'Notificaciones', fecha: '2026-03-10', urlDrive: '#', descripcion: null, ejercicio: '2026' },
 ];
 
+const CONSULTAS_DEMO = [
+  {
+    id: 'c1',
+    asunto: 'Duda sobre el modelo 303',
+    estado: 'Pendiente',
+    fecha: '2026-05-13',
+    mensaje: 'Buenos días, tengo una duda sobre cómo rellenar la casilla 10 del modelo 303 para este trimestre.',
+    respuesta: null,
+  },
+  {
+    id: 'c2',
+    asunto: 'Factura de proveedor extranjero',
+    estado: 'Respondida',
+    fecha: '2026-05-08',
+    mensaje: 'Hola, tenemos una factura de un proveedor extranjero y no sabemos cómo declararla.',
+    respuesta: 'Buenos días, para facturas de proveedores extranjeros necesitáis aplicar la inversión del sujeto pasivo en el IVA. Os adjuntamos instrucciones detalladas.',
+  },
+];
+
 const DATOS_BARRAS = [
   { periodo: 'Ene', ingresos: 36200, gastos: 28100 },
   { periodo: 'Feb', ingresos: 38500, gastos: 29400 },
@@ -198,6 +217,53 @@ export default function DashboardDemoPage() {
             <h2 className={styles.sectionTitle}>Mis documentos</h2>
           </div>
           <DocumentosGrid documentos={DOCUMENTOS} />
+        </section>
+
+        {/* CONSULTAS RECIENTES */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Consultas recientes</h2>
+            <Link href="/dashboard/consultas" className={styles.docVerTodos}>
+              Nueva consulta →
+            </Link>
+          </div>
+          <div className={styles.sectionCard}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {CONSULTAS_DEMO.map((c, i) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 0',
+                    borderBottom: i < CONSULTAS_DEMO.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.asunto}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                      {c.fecha}
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    whiteSpace: 'nowrap',
+                    background: c.estado === 'Respondida' ? '#dcfce7' : '#fef3c7',
+                    color: c.estado === 'Respondida' ? '#15803d' : '#92400e',
+                  }}>
+                    {c.estado}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* ACCESOS RÁPIDOS */}

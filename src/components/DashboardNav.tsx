@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/balance', label: 'Balance', icon: '⚖️', exact: false },
   { href: '/dashboard/pyg', label: 'PyG', icon: '📈', exact: false },
   { href: '/dashboard/documentos', label: 'Documentos', icon: '📁', exact: false },
+  { href: '/dashboard/consultas', label: 'Consultas', icon: '💬', exact: false },
 ];
 
 export default function DashboardNav() {

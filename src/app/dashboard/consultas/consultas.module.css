@@ -1,0 +1,251 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
+}
+
+.subtitulo {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* FORM */
+.formCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-white);
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.btnEnviar {
+  align-self: flex-start;
+  background: var(--color-blue);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnEnviar:hover:not(:disabled) {
+  background: var(--color-blue-dark);
+}
+
+.btnEnviar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.successMsg {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.errorMsg {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--color-danger);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* HISTORIAL */
+.historialCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.historialHeader {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.consultaItem {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.consultaItem:last-child {
+  border-bottom: none;
+}
+
+.consultaItemRespondida {
+  background: #f0fdf4;
+}
+
+.consultaTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.consultaAsunto {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.badgePendiente {
+  font-size: 11px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeRespondida {
+  font-size: 11px;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeNueva {
+  font-size: 11px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.consultaMeta {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-bottom: 6px;
+}
+
+.consultaPreview {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.btnVerRespuesta {
+  margin-top: 10px;
+  background: none;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnVerRespuesta:hover {
+  background: #f0fdf4;
+}
+
+.respuestaBox {
+  margin-top: 12px;
+  background: var(--color-white);
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.respuestaLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.emptyHistorial {
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+}

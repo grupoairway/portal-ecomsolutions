@@ -41,11 +41,20 @@ export default async function DashboardPage() {
     if (clienteNotion?.nombre) nombreCliente = clienteNotion.nombre
   }
 
-  const [vencimientos, documentos, informes] = await Promise.all([
+  const [vencimientos, documentos, informes, consultasRes] = await Promise.all([
     getVencimientosCliente(session.clienteId).catch(() => []),
     getDocumentosCliente(session.clienteId).catch(() => []),
     getInformesCliente(session.clienteId).catch(() => []),
+    fetch(
+      `${process.env.BASE_URL ?? 'http://localhost:3000'}/api/consultas?clienteId=${session.clienteId}`,
+      { cache: 'no-store' },
+    ).catch(() => null),
   ]);
+
+  interface ConsultaResumen { id: string; asunto: string; estado: string; fecha: string | null; }
+  const consultasRecientes: ConsultaResumen[] = (consultasRes && consultasRes.ok)
+    ? ((await consultasRes.json()) as ConsultaResumen[]).slice(0, 2)
+    : [];
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
 
@@ -139,6 +148,78 @@ export default async function DashboardPage() {
                       Abrir →
                     </a>
                   ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CONSULTAS RECIENTES */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Consultas recientes</h2>
+          <Link href="/dashboard/consultas" className={styles.docVerTodos}>
+            Nueva consulta →
+          </Link>
+        </div>
+        <div className={styles.sectionCard}>
+          {consultasRecientes.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+              <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
+                No has enviado ninguna consulta todavía.
+              </p>
+              <Link
+                href="/dashboard/consultas"
+                style={{
+                  display: 'inline-block',
+                  border: '1px solid var(--color-blue)',
+                  color: 'var(--color-blue)',
+                  borderRadius: 8,
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Hacer una consulta
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {consultasRecientes.map((c, i) => (
+                <div
+                  key={c.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 0',
+                    borderBottom: i < consultasRecientes.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {c.asunto}
+                    </div>
+                    {c.fecha && (
+                      <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
+                        {formatearFechaCorta(c.fecha)}
+                      </div>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    whiteSpace: 'nowrap',
+                    background: c.estado === 'Respondida' ? '#dcfce7' : '#fef3c7',
+                    color: c.estado === 'Respondida' ? '#15803d' : '#92400e',
+                  }}>
+                    {c.estado === 'Nueva' ? 'Pendiente' : c.estado}
+                  </span>
                 </div>
               ))}
             </div>
