@@ -99,6 +99,7 @@ export default function VencimientosList({ vencimientos, maxInicial = 5 }: Venci
     );
   }
 
+  console.log('Vencimiento completo[0]:', JSON.stringify(vencimientos[0]));
   console.log('Vencimiento fecha raw:', vencimientos[0]?.fecha);
   const vencidos = vencimientos.filter(v => { const d = calcDias(v.fecha); return d !== null && d <= 0; });
   const proximos = vencimientos.filter(v => { const d = calcDias(v.fecha); return d === null || d > 0; });
