@@ -89,6 +89,8 @@ export async function getVencimientosCliente(clienteId: string): Promise<any[]> 
 
   const propsKeys = Object.keys(data.results[0].properties);
   console.log('VENCIMIENTOS props keys:', JSON.stringify(propsKeys));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  console.log('TODAS LAS PROPS:', JSON.stringify(Object.entries(data.results[0]?.properties || {}).map(([k, v]: any) => ({ key: k, type: v?.type }))));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const titleKey = propsKeys.find((k) => data.results[0].properties[k]?.type === 'title') || 'Nombre';
