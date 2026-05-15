@@ -13,7 +13,7 @@ export interface ClienteNotion {
 export interface VencimientoNotion {
   id: string;
   nombre: string;
-  fecha: string;
+  fecha: string | null;
   estado: 'Pendiente' | 'Presentado' | 'Urgente';
 }
 
@@ -76,7 +76,7 @@ export async function obtenerVencimientosCliente(
       },
       body: JSON.stringify({
         filter: { property: 'Cliente', relation: { contains: clienteId } },
-        sorts: [{ property: 'Fecha', direction: 'ascending' }],
+        sorts: [{ property: 'Fecha limite', direction: 'ascending' }],
       }),
       cache: 'no-store',
     },
@@ -90,42 +90,29 @@ export async function obtenerVencimientosCliente(
   const data = await res.json() as { results: unknown[] };
   console.log('Vencimientos encontrados:', data.results.length);
 
-  return data.results.map((page) => {
-    const p = page as { id: string; properties: Record<string, unknown> };
+  return (data.results || []).map((v: unknown) => {
+    const page = v as { id: string; properties: Record<string, unknown> };
+    const props = page.properties;
 
-    function getTitle(keys: string[]): string {
-      for (const k of keys) {
-        const prop = p.properties[k] as { title?: Array<{ plain_text: string }> } | undefined;
-        const val = prop?.title?.[0]?.plain_text;
-        if (val) return val;
-      }
-      return '';
-    }
+    type TitleProp = { title?: Array<{ plain_text: string }> };
+    type DateProp  = { date?: { start: string } | null };
+    type SelectProp = { select?: { name: string } | null };
 
-    function getDate(keys: string[]): string {
-      for (const k of keys) {
-        const prop = p.properties[k] as { date?: { start: string } | null } | undefined;
-        const val = prop?.date?.start;
-        if (val) return val;
-      }
-      return '';
-    }
+    const nombre =
+      (props?.Nombre as TitleProp)?.title?.[0]?.plain_text ||
+      (props?.Name as TitleProp)?.title?.[0]?.plain_text ||
+      'Sin nombre';
 
-    function getSelect(keys: string[]): string {
-      for (const k of keys) {
-        const prop = p.properties[k] as { select?: { name: string } | null } | undefined;
-        const val = prop?.select?.name;
-        if (val) return val;
-      }
-      return 'Pendiente';
-    }
+    const fecha =
+      (props?.['Fecha limite'] as DateProp)?.date?.start ||
+      (props?.Fecha as DateProp)?.date?.start ||
+      (props?.['Fecha vencimiento'] as DateProp)?.date?.start ||
+      null;
 
-    return {
-      id: p.id,
-      nombre: getTitle(['Nombre', 'Name', 'Nombre del vencimiento']),
-      fecha: getDate(['Fecha', 'Fecha vencimiento', 'Fecha de vencimiento']),
-      estado: getSelect(['Estado']) as 'Pendiente' | 'Presentado' | 'Urgente',
-    };
+    const estado = ((props?.Estado as SelectProp)?.select?.name || 'Pendiente') as
+      'Pendiente' | 'Presentado' | 'Urgente';
+
+    return { id: page.id, nombre, fecha, estado };
   });
 }
 

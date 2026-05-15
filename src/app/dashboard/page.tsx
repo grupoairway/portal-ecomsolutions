@@ -49,17 +49,13 @@ export default async function DashboardPage() {
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
 
-  // Split vencimientos: próximos (>= hoy) y historial reciente (últimos 3 meses)
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const hace3meses = new Date(hoy);
-  hace3meses.setMonth(hace3meses.getMonth() - 3);
-  const vencimientosProximos = vencimientos.filter(v => !v.fecha || new Date(v.fecha) >= hoy);
-  const vencimientosHistorial = vencimientos.filter(v => {
-    if (!v.fecha) return false;
-    const fv = new Date(v.fecha);
-    return fv < hoy && fv >= hace3meses;
-  });
+  // Split vencimientos: próximos (>= hoy) y historial reciente (últimos 90 días)
+  const hoyISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const hace90ISO = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const vencimientosProximos = vencimientos.filter(v => !v.fecha || v.fecha >= hoyISO);
+  const vencimientosHistorial = vencimientos.filter(
+    v => v.fecha && v.fecha < hoyISO && v.fecha >= hace90ISO,
+  );
 
   // Build chart data from all informes, sorted chronologically
   const sortedInformes = [...informes].sort((a, b) => a.fechaSubida.localeCompare(b.fechaSubida));
