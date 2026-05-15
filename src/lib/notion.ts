@@ -123,6 +123,12 @@ export async function getInformesCliente(
     // Log de las claves reales para detectar discrepancias de nombre
     console.log('Propiedades del informe:', Object.keys(p.properties))
 
+    const metricasRaw =
+      (p.properties['Métricas JSON'] as { rich_text?: Array<{ plain_text: string }> } | undefined)?.rich_text?.[0]?.plain_text ||
+      (p.properties['MetricasJSON'] as { rich_text?: Array<{ plain_text: string }> } | undefined)?.rich_text?.[0]?.plain_text ||
+      (p.properties['Metricas JSON'] as { rich_text?: Array<{ plain_text: string }> } | undefined)?.rich_text?.[0]?.plain_text
+    console.log('MetricasRAW:', metricasRaw?.substring(0, 500))
+
     function getRichText(key: string): string | null {
       const prop = p.properties[key] as { rich_text?: Array<{ plain_text: string }> } | undefined;
       const value = prop?.rich_text?.[0]?.plain_text ?? null;
