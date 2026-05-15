@@ -22,21 +22,30 @@ function limpiarNombre(nombre: string): string {
   return nombre;
 }
 
-function formatFecha(iso: string): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+function formatFecha(iso: string | null): string {
+  if (!iso) return '—';
+  try {
+    const soloFecha = iso.split('T')[0];
+    const [year, month, day] = soloFecha.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return iso;
+  }
 }
 
-function calcDias(iso: string): number {
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fecha = new Date(iso);
-  fecha.setHours(0, 0, 0, 0);
-  return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+function calcDias(iso: string | null): number | null {
+  if (!iso) return null;
+  try {
+    const soloFecha = iso.split('T')[0];
+    const [year, month, day] = soloFecha.split('-').map(Number);
+    const fecha = new Date(year, month - 1, day);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
 }
 
 function diasBadge(dias: number): { texto: string; clase: string } {
@@ -54,7 +63,7 @@ const ESTADO_CONFIG: Record<string, { clase: string; label: string }> = {
 
 function Fila({ v }: { v: Vencimiento }) {
   const nombre = limpiarNombre(v.nombre);
-  const dias = v.fecha ? calcDias(v.fecha) : null;
+  const dias = calcDias(v.fecha);
   const badge = dias !== null ? diasBadge(dias) : null;
   const estadoConf = ESTADO_CONFIG[v.estado] ?? ESTADO_CONFIG.Pendiente;
 
@@ -90,8 +99,9 @@ export default function VencimientosList({ vencimientos, maxInicial = 5 }: Venci
     );
   }
 
-  const vencidos = vencimientos.filter(v => v.fecha && calcDias(v.fecha) <= 0);
-  const proximos = vencimientos.filter(v => !v.fecha || calcDias(v.fecha) > 0);
+  console.log('Vencimiento fecha raw:', vencimientos[0]?.fecha);
+  const vencidos = vencimientos.filter(v => { const d = calcDias(v.fecha); return d !== null && d <= 0; });
+  const proximos = vencimientos.filter(v => { const d = calcDias(v.fecha); return d === null || d > 0; });
   const proximosMostrar = expandido ? proximos : proximos.slice(0, maxInicial);
   const hayMas = proximos.length > maxInicial;
 
