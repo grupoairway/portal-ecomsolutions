@@ -1,15 +1,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifyToken } from '@/lib/auth';
+import { decodeSession } from '@/lib/session';
 import { getUltimoInforme } from '@/lib/notion';
 import TablaContable from '@/components/TablaContable';
 import type { FilaContable } from '@/lib/excel-parser';
 import styles from './pyg.module.css';
 
 export default async function PyGPage() {
-  const token = cookies().get('portal_session')?.value;
-  if (!token) redirect('/');
-  const session = await verifyToken(token);
+  const sessionCookie = cookies().get('portal_session');
+  if (!sessionCookie) redirect('/');
+  const session = decodeSession(sessionCookie.value);
   if (!session) redirect('/');
 
   const informe = await getUltimoInforme(session.clienteId).catch(() => null);

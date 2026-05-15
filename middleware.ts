@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 
 const PUBLIC_PATHS = ['/', '/auth/verify', '/api/auth/request', '/api/auth/verify', '/dashboard-demo'];
 
@@ -7,22 +6,22 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get('portal_session')?.value;
+  const session = request.cookies.get('portal_session');
 
-  if (!token) {
+  if (!session) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   try {
-    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!);
-    await jwtVerify(token, secret);
+    const data = JSON.parse(Buffer.from(session.value, 'base64').toString());
+    if (!data.clienteId || !data.email) throw new Error('invalid');
     return NextResponse.next();
   } catch {
     const response = NextResponse.redirect(new URL('/', request.url));

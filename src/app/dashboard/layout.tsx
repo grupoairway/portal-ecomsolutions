@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifyToken } from '@/lib/auth';
+import { decodeSession } from '@/lib/session';
 import DashboardNav from '@/components/DashboardNav';
 import styles from './dashboard.module.css';
 
@@ -15,9 +15,9 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const token = cookies().get('portal_session')?.value;
-  if (!token) redirect('/');
-  const session = await verifyToken(token);
+  const sessionCookie = cookies().get('portal_session');
+  if (!sessionCookie) redirect('/');
+  const session = decodeSession(sessionCookie.value);
   if (!session) redirect('/');
 
   return (

@@ -43,8 +43,10 @@ export async function POST(req: NextRequest) {
     const nombre = cliente.properties?.Nombre?.title?.[0]?.plain_text || 'Cliente'
     console.log('Cliente encontrado:', nombre, clienteId)
 
-    // Generar token simple
-    const token = Buffer.from(JSON.stringify({ clienteId, email, exp: Date.now() + 86400000 })).toString('base64')
+    // Token incluye nombre para la sesión
+    const token = Buffer.from(
+      JSON.stringify({ clienteId, email, nombre, exp: Date.now() + 86400000 })
+    ).toString('base64')
     const magicUrl = `${process.env.BASE_URL}/auth/verify?token=${token}`
     console.log('Magic URL generada:', magicUrl.substring(0, 50) + '...')
 

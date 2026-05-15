@@ -1,12 +1,15 @@
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { decodeSession } from '@/lib/session';
 import { getDocumentosCliente } from '@/lib/notion';
 import DocumentosGrid from '@/components/DocumentosGrid';
 import styles from './documentos.module.css';
 
 export default async function DocumentosPage() {
-  const token = cookies().get('portal_session')!.value;
-  const session = (await verifyToken(token))!;
+  const sessionCookie = cookies().get('portal_session');
+  if (!sessionCookie) redirect('/');
+  const session = decodeSession(sessionCookie.value);
+  if (!session) redirect('/');
 
   const documentos = await getDocumentosCliente(session.clienteId).catch(() => []);
 
