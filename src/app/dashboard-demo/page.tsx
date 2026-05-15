@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import MetricCard from '@/components/MetricCard';
 import VencimientosList from '@/components/VencimientosList';
@@ -9,6 +10,7 @@ import DashboardNav from '@/components/DashboardNav';
 import DocumentosGrid from '@/components/DocumentosGrid';
 import type { VencimientoNotion, DocumentoNotion } from '@/lib/notion';
 import styles from '../dashboard/dashboard.module.css';
+import selectorStyles from './demo.module.css';
 
 const VENCIMIENTOS: VencimientoNotion[] = [
   { id: '1', nombre: 'Modelo 303 - IVA 2T', fecha: '2026-07-20', estado: 'Pendiente' },
@@ -42,7 +44,28 @@ const DATOS_LINEAS = [
   { periodo: 'Jun', resultado: 8920 },
 ];
 
+const PERIODOS_DEMO = [
+  {
+    label: 'Anual 2025',
+    metricas: { ingresos: 48500, resultado: 8920, activo: 62400, patrimonio: 24180, caja: 12650, deudas: 18320 },
+    variaciones: { ingresos: 12.3, resultado: 157.3, activo: 8.1, patrimonio: 58.4, caja: -5.2, deudas: -15.8 },
+  },
+  {
+    label: '2T 2025',
+    metricas: { ingresos: 24800, resultado: 5100, activo: 58900, patrimonio: 22400, caja: 11200, deudas: 19800 },
+    variaciones: { ingresos: 8.7, resultado: 42.1, activo: 5.3, patrimonio: 31.2, caja: -2.8, deudas: -8.4 },
+  },
+  {
+    label: '1T 2025',
+    metricas: { ingresos: 23700, resultado: 3820, activo: 55200, patrimonio: 20100, caja: 10800, deudas: 21500 },
+    variaciones: { ingresos: 4.2, resultado: 18.6, activo: 2.9, patrimonio: 14.7, caja: 3.1, deudas: -3.2 },
+  },
+];
+
 export default function DashboardDemoPage() {
+  const [periodoIdx, setPeriodoIdx] = useState(0);
+  const periodo = PERIODOS_DEMO[periodoIdx];
+
   return (
     <div className={styles.page}>
       {/* HEADER */}
@@ -106,18 +129,27 @@ export default function DashboardDemoPage() {
           </div>
         </section>
 
-        {/* MÉTRICAS */}
+        {/* MÉTRICAS CON SELECTOR */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Resumen financiero</h2>
+            <h2 className={styles.sectionTitle}>Resumen financiero · {periodo.label}</h2>
+            <select
+              className={selectorStyles.selector}
+              value={periodoIdx}
+              onChange={(e) => setPeriodoIdx(Number(e.target.value))}
+            >
+              {PERIODOS_DEMO.map((p, i) => (
+                <option key={p.label} value={i}>{p.label}</option>
+              ))}
+            </select>
           </div>
           <div className={styles.metricsGrid}>
-            <MetricCard icono="💰" label="Ingresos del período" valor={48500} variacion={12.3} />
-            <MetricCard icono="📊" label="Resultado del ejercicio" valor={8920} variacion={157.3} />
-            <MetricCard icono="🏦" label="Total Activo" valor={62400} variacion={8.1} />
-            <MetricCard icono="🏛️" label="Patrimonio Neto" valor={24180} variacion={58.4} />
-            <MetricCard icono="💵" label="Caja disponible" valor={12650} variacion={-5.2} />
-            <MetricCard icono="📋" label="Deudas a corto plazo" valor={18320} variacion={-15.8} />
+            <MetricCard icono="💰" label="Ingresos del período" valor={periodo.metricas.ingresos} variacion={periodo.variaciones.ingresos} />
+            <MetricCard icono="📊" label="Resultado del ejercicio" valor={periodo.metricas.resultado} variacion={periodo.variaciones.resultado} />
+            <MetricCard icono="🏦" label="Total Activo" valor={periodo.metricas.activo} variacion={periodo.variaciones.activo} />
+            <MetricCard icono="🏛️" label="Patrimonio Neto" valor={periodo.metricas.patrimonio} variacion={periodo.variaciones.patrimonio} />
+            <MetricCard icono="💵" label="Caja disponible" valor={periodo.metricas.caja} variacion={periodo.variaciones.caja} />
+            <MetricCard icono="📋" label="Deudas a corto plazo" valor={periodo.metricas.deudas} variacion={periodo.variaciones.deudas} />
           </div>
         </section>
 

@@ -1,105 +1,48 @@
-'use client';
-
-import { useState } from 'react';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { verifyToken } from '@/lib/auth';
+import { getUltimoInforme } from '@/lib/notion';
 import TablaContable from '@/components/TablaContable';
-import MetricCard from '@/components/MetricCard';
-import type { PyGData } from '@/lib/excel-parser';
+import type { FilaContable } from '@/lib/excel-parser';
 import styles from './pyg.module.css';
 
-export default function PyGPage() {
-  const [datos, setDatos] = useState<PyGData | null>(null);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
+export default async function PyGPage() {
+  const token = cookies().get('portal_session')?.value;
+  if (!token) redirect('/');
+  const session = await verifyToken(token);
+  if (!session) redirect('/');
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const archivo = e.target.files?.[0];
-    if (!archivo) return;
+  const informe = await getUltimoInforme(session.clienteId).catch(() => null);
 
-    setCargando(true);
-    setError('');
+  let filas: FilaContable[] = [];
+  let periodo = '';
 
+  if (informe?.pygJSON) {
     try {
-      const form = new FormData();
-      form.append('archivo', archivo);
-      form.append('tipo', 'pyg');
-
-      const res = await fetch('/api/upload', { method: 'POST', body: form });
-      const json = await res.json();
-
-      if (!res.ok) {
-        setError(json.error ?? 'Error al procesar el archivo.');
-      } else {
-        setDatos(json.data as PyGData);
-      }
+      filas = JSON.parse(informe.pygJSON) as FilaContable[];
+      periodo = informe.periodo;
     } catch {
-      setError('Error de conexión al subir el archivo.');
-    } finally {
-      setCargando(false);
-      e.target.value = '';
+      // JSON inválido, se muestra estado vacío
     }
   }
 
-  function calcVariacion(actual: number, anterior: number): number | null {
-    if (anterior === 0) return null;
-    return ((actual - anterior) / Math.abs(anterior)) * 100;
-  }
+  const titulo = periodo ? `Pérdidas y Ganancias · ${periodo}` : 'Cuenta de Pérdidas y Ganancias';
 
   return (
     <div className={styles.content}>
       <div className={styles.topBar}>
-        <h1 className={styles.h1}>Cuenta de Pérdidas y Ganancias</h1>
-        <div>
-          <label className={styles.uploadLabel} htmlFor="upload-pyg">
-            {datos ? '↑ Actualizar Excel' : '↑ Subir Excel'}
-          </label>
-          <input
-            id="upload-pyg"
-            type="file"
-            accept=".xlsx,.xls"
-            className={styles.uploadInput}
-            onChange={handleUpload}
-          />
-        </div>
+        <h1 className={styles.h1}>{titulo}</h1>
       </div>
 
-      {error && <div className={styles.uploadError}>{error}</div>}
-
-      {!datos && !cargando && (
+      {filas.length === 0 ? (
         <div className={styles.uploadArea}>
-          <p className={styles.uploadTitle}>Sube el Excel de PyG</p>
+          <p className={styles.uploadTitle}>Sin datos disponibles</p>
           <p className={styles.uploadDesc}>
-            Acepta archivos .xlsx con hoja &quot;PyG&quot;
+            Tu gestor publicará la cuenta de PyG próximamente.
           </p>
-          <label className={styles.uploadLabel} htmlFor="upload-pyg">
-            Seleccionar archivo
-          </label>
         </div>
-      )}
-
-      {cargando && (
-        <div className={styles.uploadArea}>
-          <p className={styles.uploadLoading}>⏳ Procesando el archivo Excel...</p>
-        </div>
-      )}
-
-      {datos && (
-        <>
-          <div className={styles.metricsRow}>
-            <MetricCard
-              icono="💰"
-              label="Ingresos del período"
-              valor={datos.metricas.ingresos}
-              variacion={calcVariacion(datos.metricas.ingresos, datos.metricas.ingresosAnterior)}
-            />
-            <MetricCard
-              icono="📊"
-              label="Resultado del ejercicio"
-              valor={datos.metricas.resultado}
-              variacion={calcVariacion(datos.metricas.resultado, datos.metricas.resultadoAnterior)}
-            />
-          </div>
-          <TablaContable filas={datos.hoja.filas} titulo="Detalle PyG" />
-        </>
+      ) : (
+        <TablaContable filas={filas} titulo="Detalle PyG" />
       )}
     </div>
   );

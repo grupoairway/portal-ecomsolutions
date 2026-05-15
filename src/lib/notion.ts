@@ -1,4 +1,6 @@
 import { Client } from '@notionhq/client';
+export type { MetricasInforme, InformeNotion } from './informe-tipos';
+export { parseMetricas } from './informe-tipos';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
@@ -92,6 +94,52 @@ export async function obtenerVencimientosCliente(
         | 'Urgente',
     };
   });
+}
+
+export async function getInformesCliente(
+  clienteId: string,
+): Promise<import('./informe-tipos').InformeNotion[]> {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_INFORMES_DB!,
+    filter: {
+      and: [
+        { property: 'Cliente', relation: { contains: clienteId } },
+        { property: 'Publicado', checkbox: { equals: true } },
+      ],
+    },
+    sorts: [{ property: 'Fecha subida', direction: 'descending' }],
+  });
+
+  return response.results.map((page) => {
+    const p = page as unknown as {
+      id: string;
+      properties: {
+        'Período': { select?: { name: string } | null; rich_text?: Array<{ plain_text: string }> };
+        'Ejercicio': { select?: { name: string } | null; rich_text?: Array<{ plain_text: string }> };
+        'Fecha subida': { date: { start: string } | null };
+        'MétricasJSON': { rich_text: Array<{ plain_text: string }> };
+        'BalanceJSON': { rich_text: Array<{ plain_text: string }> };
+        'PyGJSON': { rich_text: Array<{ plain_text: string }> };
+      };
+    };
+
+    return {
+      id: p.id,
+      periodo: p.properties['Período']?.select?.name ?? p.properties['Período']?.rich_text?.[0]?.plain_text ?? '',
+      ejercicio: p.properties['Ejercicio']?.select?.name ?? p.properties['Ejercicio']?.rich_text?.[0]?.plain_text ?? '',
+      fechaSubida: p.properties['Fecha subida']?.date?.start ?? '',
+      metricasJSON: p.properties['MétricasJSON']?.rich_text[0]?.plain_text ?? null,
+      balanceJSON: p.properties['BalanceJSON']?.rich_text[0]?.plain_text ?? null,
+      pygJSON: p.properties['PyGJSON']?.rich_text[0]?.plain_text ?? null,
+    };
+  });
+}
+
+export async function getUltimoInforme(
+  clienteId: string,
+): Promise<import('./informe-tipos').InformeNotion | null> {
+  const informes = await getInformesCliente(clienteId);
+  return informes[0] ?? null;
 }
 
 export async function getDocumentosCliente(

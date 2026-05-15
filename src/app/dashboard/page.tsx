@@ -2,12 +2,12 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { verifyToken } from '@/lib/auth';
-import { obtenerVencimientosCliente, getDocumentosCliente } from '@/lib/notion';
+import { obtenerVencimientosCliente, getDocumentosCliente, getInformesCliente } from '@/lib/notion';
 import type { DocumentoNotion } from '@/lib/notion';
-import MetricCard from '@/components/MetricCard';
 import VencimientosList from '@/components/VencimientosList';
 import GraficoBarras from '@/components/GraficoBarras';
 import GraficoLineas from '@/components/GraficoLineas';
+import FinancieroSection from '@/components/FinancieroSection';
 import styles from './dashboard.module.css';
 
 const TIPO_ICONOS: Record<string, string> = {
@@ -33,9 +33,10 @@ export default async function DashboardPage() {
   const session = await verifyToken(token);
   if (!session) redirect('/');
 
-  const [vencimientos, documentos] = await Promise.all([
+  const [vencimientos, documentos, informes] = await Promise.all([
     obtenerVencimientosCliente(session.clienteId).catch(() => []),
     getDocumentosCliente(session.clienteId).catch(() => []),
+    getInformesCliente(session.clienteId).catch(() => []),
   ]);
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
@@ -56,13 +57,7 @@ export default async function DashboardPage() {
 
       {/* RESUMEN FINANCIERO */}
       <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Resumen financiero</h2>
-        </div>
-        <div className={styles.emptyData}>
-          <strong>Sin datos financieros</strong>
-          Sube tu Excel de Balance o PyG desde las páginas de detalle para ver las métricas aquí.
-        </div>
+        <FinancieroSection informes={informes} />
       </section>
 
       {/* GRAFICOS */}

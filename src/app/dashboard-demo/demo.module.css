@@ -1,0 +1,16 @@
+.selector {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.selector:focus {
+  border-color: var(--color-blue);
+}
