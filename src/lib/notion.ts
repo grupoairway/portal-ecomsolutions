@@ -86,22 +86,29 @@ export async function obtenerVencimientosCliente(
     return [];
   }
 
-  const data = await res.json() as { results: unknown[] };
-  console.log('Total vencimientos obtenidos de Notion:', data.results?.length);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (data.results as any[])?.slice(0, 3).forEach((v: any) => {
-    console.log('Vencimiento:', {
-      nombre: v.properties?.Nombre?.title?.[0]?.plain_text,
-      fechaLimite: v.properties?.['Fecha limite']?.date?.start,
-      estado: v.properties?.Estado?.select?.name,
-      clienteRelation: v.properties?.Cliente?.relation?.[0]?.id,
-    });
-  });
+  const data = await res.json() as { results: any[] };
+  console.log('Total vencimientos obtenidos de Notion:', data.results?.length);
+  console.log('Props vencimiento 0:', JSON.stringify(Object.keys(data.results[0]?.properties || {})));
+  console.log('Title prop:', JSON.stringify(
+    data.results[0]?.properties?.Título ||
+    data.results[0]?.properties?.Title ||
+    data.results[0]?.properties?.Nombre ||
+    data.results[0]?.properties?.Name
+  ));
+  console.log('Fecha prop:', JSON.stringify(
+    data.results[0]?.properties?.['Fecha limite'] ||
+    data.results[0]?.properties?.Fecha
+  ));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vencimientos = (data.results || []).map((v: any) => ({
     id: v.id,
-    nombre: v.properties?.Nombre?.title?.[0]?.plain_text || 'Sin nombre',
+    nombre: v.properties?.Título?.title?.[0]?.plain_text
+      || v.properties?.Title?.title?.[0]?.plain_text
+      || v.properties?.Nombre?.title?.[0]?.plain_text
+      || v.properties?.Name?.title?.[0]?.plain_text
+      || 'Sin nombre',
     fecha: v.properties?.['Fecha limite']?.date?.start || null,
     estado: (v.properties?.Estado?.select?.name || 'Pendiente') as
       'Pendiente' | 'Presentado' | 'Urgente',
