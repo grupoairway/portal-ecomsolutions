@@ -23,9 +23,14 @@ export interface InformeNotion {
 }
 
 export function parseMetricas(metricasJSON: string): MetricasInforme | null {
+  console.log('Parseando métricas, input length:', metricasJSON?.length)
+  console.log('Input preview:', metricasJSON?.substring(0, 100))
   try {
-    return JSON.parse(metricasJSON) as MetricasInforme;
-  } catch {
+    const parsed = JSON.parse(metricasJSON) as MetricasInforme;
+    console.log('Parse OK, claves:', Object.keys(parsed))
+    return parsed;
+  } catch (e) {
+    console.log('Parse ERROR:', e)
     return null;
   }
 }

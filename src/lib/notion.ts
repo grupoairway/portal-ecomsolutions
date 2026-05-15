@@ -117,24 +117,53 @@ export async function getInformesCliente(
   return response.results.map((page) => {
     const p = page as unknown as {
       id: string;
-      properties: {
-        'Período': { select?: { name: string } | null; rich_text?: Array<{ plain_text: string }> };
-        'Ejercicio': { select?: { name: string } | null; rich_text?: Array<{ plain_text: string }> };
-        'Fecha subida': { date: { start: string } | null };
-        'MétricasJSON': { rich_text: Array<{ plain_text: string }> };
-        'BalanceJSON': { rich_text: Array<{ plain_text: string }> };
-        'PyGJSON': { rich_text: Array<{ plain_text: string }> };
-      };
+      properties: Record<string, unknown>;
     };
+
+    // Log de las claves reales para detectar discrepancias de nombre
+    console.log('Propiedades del informe:', Object.keys(p.properties))
+
+    function getRichText(key: string): string | null {
+      const prop = p.properties[key] as { rich_text?: Array<{ plain_text: string }> } | undefined;
+      const value = prop?.rich_text?.[0]?.plain_text ?? null;
+      console.log(`Campo "${key}":`, value ? `${value.substring(0, 80)}...` : 'null');
+      return value;
+    }
+
+    function getSelect(key: string): string | null {
+      const prop = p.properties[key] as { select?: { name: string } | null; rich_text?: Array<{ plain_text: string }> } | undefined;
+      return prop?.select?.name ?? prop?.rich_text?.[0]?.plain_text ?? null;
+    }
+
+    function getDate(key: string): string | null {
+      const prop = p.properties[key] as { date?: { start: string } | null } | undefined;
+      return prop?.date?.start ?? null;
+    }
+
+    // Soporte para nombres con y sin espacio / tilde
+    const metricasJSON =
+      getRichText('Métricas JSON') ??
+      getRichText('MétricasJSON') ??
+      getRichText('Metricas JSON') ??
+      getRichText('MetricasJSON');
+
+    const balanceJSON =
+      getRichText('Balance JSON') ??
+      getRichText('BalanceJSON');
+
+    const pygJSON =
+      getRichText('PyG JSON') ??
+      getRichText('PyGJSON') ??
+      getRichText('PYG JSON');
 
     return {
       id: p.id,
-      periodo: p.properties['Período']?.select?.name ?? p.properties['Período']?.rich_text?.[0]?.plain_text ?? '',
-      ejercicio: p.properties['Ejercicio']?.select?.name ?? p.properties['Ejercicio']?.rich_text?.[0]?.plain_text ?? '',
-      fechaSubida: p.properties['Fecha subida']?.date?.start ?? '',
-      metricasJSON: p.properties['MétricasJSON']?.rich_text[0]?.plain_text ?? null,
-      balanceJSON: p.properties['BalanceJSON']?.rich_text[0]?.plain_text ?? null,
-      pygJSON: p.properties['PyGJSON']?.rich_text[0]?.plain_text ?? null,
+      periodo: getSelect('Período') ?? getSelect('Periodo') ?? '',
+      ejercicio: getSelect('Ejercicio') ?? '',
+      fechaSubida: getDate('Fecha subida') ?? '',
+      metricasJSON,
+      balanceJSON,
+      pygJSON,
     };
   });
 }

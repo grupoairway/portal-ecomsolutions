@@ -52,6 +52,11 @@ export default async function DashboardPage() {
     getInformesCliente(session.clienteId).catch(() => []),
   ]);
 
+  const primerInforme = informes[0] ?? null;
+  console.log('Informe encontrado:', primerInforme?.id)
+  console.log('MetricasJSON length:', primerInforme?.metricasJSON?.length)
+  console.log('MetricasJSON preview:', primerInforme?.metricasJSON?.substring(0, 200))
+
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
   const datosGraficoBarra: { periodo: string; ingresos: number; gastos: number }[] = [];
   const datosGraficoLinea: { periodo: string; resultado: number }[] = [];
