@@ -3,21 +3,9 @@ import { redirect } from 'next/navigation';
 import { decodeSession } from '@/lib/session';
 import { getUltimoInforme } from '@/lib/notion';
 import TablaContable from '@/components/TablaContable';
-import type { FilaContable } from '@/lib/excel-parser';
+import { parseExcelFilas } from '@/lib/balance-tipos';
+import type { FilaBalance } from '@/lib/balance-tipos';
 import styles from './balance.module.css';
-
-function parseFilas(raw: unknown): FilaContable[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((f) => ({
-    codigo: String(f?.codigo ?? ''),
-    descripcion: String(f?.descripcion ?? ''),
-    valorActual: typeof f?.valorActual === 'number' ? f.valorActual : parseFloat(f?.valorActual) || 0,
-    valorAnterior: typeof f?.valorAnterior === 'number' ? f.valorAnterior : parseFloat(f?.valorAnterior) || 0,
-    variacion: typeof f?.variacion === 'number' ? f.variacion : (f?.variacion != null ? parseFloat(f.variacion) : null),
-    tipo: f?.tipo ?? 'cuenta',
-    nivel: typeof f?.nivel === 'number' ? f.nivel : 1,
-  }));
-}
 
 export default async function BalancePage() {
   const sessionCookie = cookies().get('portal_session');
@@ -27,18 +15,18 @@ export default async function BalancePage() {
 
   const informe = await getUltimoInforme(session.clienteId).catch(() => null);
 
-  let activo: FilaContable[] = [];
-  let pasivo: FilaContable[] = [];
+  let activo: FilaBalance[] = [];
+  let pasivo: FilaBalance[] = [];
   let periodo = '';
 
   if (informe?.balanceJSON) {
     try {
-      const parsed = JSON.parse(informe.balanceJSON);
-      activo = parseFilas(parsed?.activo);
-      pasivo = parseFilas(parsed?.pasivo);
+      const data = JSON.parse(informe.balanceJSON);
+      activo = parseExcelFilas(data.activo || [], 'activo');
+      pasivo = parseExcelFilas(data.pasivo || [], 'pasivo');
       periodo = informe.periodo;
     } catch {
-      // JSON inválido, se muestra estado vacío
+      // JSON inválido
     }
   }
 

@@ -1,63 +1,42 @@
-'use client';
-
-import { useState } from 'react';
-import type { FilaContable } from '@/lib/excel-parser';
+import type { FilaBalance } from '@/lib/balance-tipos';
 import styles from './TablaContable.module.css';
 
 interface TablaContableProps {
-  filas: FilaContable[];
+  filas: FilaBalance[];
   titulo?: string;
 }
 
-function formatearEuros(n: unknown): string {
-  const num = typeof n === 'number' && !isNaN(n) ? n : 0;
+function formatEuros(v: number | null): string {
+  if (v === null || v === undefined) return '—';
   return new Intl.NumberFormat('es-ES', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(num);
+  }).format(v) + ' €';
 }
 
-function formatearVariacion(v: unknown): string {
-  if (v === null || v === undefined) return '—';
-  const num = typeof v === 'number' && !isNaN(v) ? v : 0;
-  return `${num >= 0 ? '+' : ''}${num.toFixed(1)}%`;
+function varBadge(v: number | null): { texto: string; color: string } {
+  if (v === null || v === undefined) return { texto: '—', color: 'var(--color-muted)' };
+  if (v > 0) return { texto: `+${v.toFixed(1)}%`, color: 'var(--color-success)' };
+  if (v < 0) return { texto: `${v.toFixed(1)}%`, color: 'var(--color-danger)' };
+  return { texto: '0.0%', color: 'var(--color-muted)' };
+}
+
+function getRowStyle(fila: FilaBalance): React.CSSProperties {
+  if (fila.esTotal) {
+    return { background: '#eff6ff', borderTop: '2px solid #bfdbfe', fontWeight: 700 };
+  }
+  if (fila.nivel === 1) return { background: '#f9fafb' };
+  return { background: '#ffffff' };
+}
+
+function getDescStyle(fila: FilaBalance): React.CSSProperties {
+  if (fila.esTotal) return { fontWeight: 700, fontSize: '0.875rem', paddingLeft: 0 };
+  if (fila.nivel === 1) return { fontWeight: 700, fontSize: '0.9rem', paddingLeft: 0 };
+  if (fila.nivel === 2) return { fontWeight: 600, fontSize: '0.875rem', paddingLeft: 16 };
+  return { fontWeight: 400, fontSize: '0.825rem', color: '#6b7280', paddingLeft: 32 };
 }
 
 export default function TablaContable({ filas, titulo }: TablaContableProps) {
-  const [colapsados, setColapsados] = useState<Set<string>>(new Set());
-
-  function toggleColapso(codigo: string) {
-    setColapsados((prev) => {
-      const next = new Set(prev);
-      if (next.has(codigo)) {
-        next.delete(codigo);
-      } else {
-        next.add(codigo);
-      }
-      return next;
-    });
-  }
-
-  let grupoActual: string | null = null;
-  let subgrupoActual: string | null = null;
-
-  const filasVisibles = filas.filter((fila) => {
-    if (fila.tipo === 'grupo') {
-      grupoActual = fila.codigo;
-      subgrupoActual = null;
-      return true;
-    }
-    if (fila.tipo === 'subgrupo') {
-      subgrupoActual = fila.codigo;
-      if (grupoActual && colapsados.has(grupoActual)) return false;
-      return true;
-    }
-    if (fila.tipo === 'total') return true;
-    if (grupoActual && colapsados.has(grupoActual)) return false;
-    if (subgrupoActual && colapsados.has(subgrupoActual)) return false;
-    return true;
-  });
-
   return (
     <div className={styles.wrapper}>
       {titulo && <h3 className={styles.titulo}>{titulo}</h3>}
@@ -68,64 +47,34 @@ export default function TablaContable({ filas, titulo }: TablaContableProps) {
               <th className={styles.thDesc}>Descripción</th>
               <th className={styles.thNum}>Año actual</th>
               <th className={styles.thNum}>Año anterior</th>
-              <th className={styles.thNum}>Variación</th>
+              <th className={styles.thNum}>Var. %</th>
             </tr>
           </thead>
           <tbody>
-            {filasVisibles.map((fila, i) => {
-              const esColapsable = fila.tipo === 'grupo' || fila.tipo === 'subgrupo';
-              const estaColapsado = colapsados.has(fila.codigo);
-
-              const valorActual = typeof fila.valorActual === 'number' ? fila.valorActual : 0;
-              const valorAnterior = typeof fila.valorAnterior === 'number' ? fila.valorAnterior : 0;
-              const variacion = typeof fila.variacion === 'number' ? fila.variacion : null;
+            {filas.map((fila, i) => {
+              const vd = varBadge(fila.variacion);
+              const descStyle = getDescStyle(fila);
 
               return (
-                <tr
-                  key={`${fila.codigo}-${i}`}
-                  className={`
-                    ${styles.row}
-                    ${fila.tipo === 'grupo' ? styles.rowGrupo : ''}
-                    ${fila.tipo === 'subgrupo' ? styles.rowSubgrupo : ''}
-                    ${fila.tipo === 'total' ? styles.rowTotal : ''}
-                    ${fila.tipo === 'cuenta' ? styles.rowCuenta : ''}
-                    ${esColapsable ? styles.rowColapsable : ''}
-                  `}
-                  onClick={esColapsable ? () => toggleColapso(fila.codigo) : undefined}
-                >
+                <tr key={`${fila.codigo}-${i}`} className={styles.row} style={getRowStyle(fila)}>
                   <td className={styles.tdDesc}>
-                    <span
-                      className={styles.indent}
-                      style={{ paddingLeft: fila.nivel === 3 ? 40 : fila.nivel === 2 ? 20 : 0 }}
-                    >
-                      {esColapsable && (
-                        <span className={styles.chevron}>
-                          {estaColapsado ? '▶' : '▼'}
-                        </span>
+                    <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingLeft: descStyle.paddingLeft as number }}>
+                      {fila.codigo && fila.nivel < 3 && (
+                        <span className={styles.codigo}>{fila.codigo}</span>
                       )}
-                      <span className={styles.codigo}>{fila.codigo}</span>
-                      {fila.tipo !== 'cuenta' && (
-                        <span className={styles.descripcion}>{fila.descripcion}</span>
-                      )}
-                      {fila.tipo === 'cuenta' && (
-                        <span className={styles.descripcionCuenta}>{fila.descripcion}</span>
-                      )}
+                      <span style={{ fontWeight: descStyle.fontWeight, fontSize: descStyle.fontSize as string, color: descStyle.color as string }}>
+                        {fila.descripcion}
+                      </span>
                     </span>
                   </td>
-                  <td className={`${styles.tdNum} ${valorActual < 0 ? styles.negativo : ''}`}>
-                    {formatearEuros(valorActual)}
+                  <td className={`${styles.tdNum} ${fila.valorActual !== null && fila.valorActual < 0 ? styles.negativo : ''}`}>
+                    {formatEuros(fila.valorActual)}
                   </td>
-                  <td className={`${styles.tdNum} ${valorAnterior < 0 ? styles.negativo : ''}`}>
-                    {formatearEuros(valorAnterior)}
+                  <td className={`${styles.tdNum} ${fila.valorAnterior !== null && fila.valorAnterior < 0 ? styles.negativo : ''}`}>
+                    {formatEuros(fila.valorAnterior)}
                   </td>
-                  <td
-                    className={`${styles.tdNum} ${
-                      variacion !== null && variacion < 0 ? styles.negativo : ''
-                    } ${
-                      variacion !== null && variacion > 0 ? styles.positivo : ''
-                    }`}
-                  >
-                    {formatearVariacion(variacion)}
+                  <td className={styles.tdNum} style={{ color: vd.color }}>
+                    {vd.texto}
                   </td>
                 </tr>
               );
