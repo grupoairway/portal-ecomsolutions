@@ -83,32 +83,18 @@ export async function getVencimientosCliente(clienteId: string): Promise<any[]> 
   const data = await res.json();
 
   if (!data.results || data.results.length === 0) {
-    console.log('VENCIMIENTOS: 0 resultados para clienteId:', clienteId);
     return [];
   }
-
-  const propsKeys = Object.keys(data.results[0].properties);
-  console.log('VENCIMIENTOS props keys:', JSON.stringify(propsKeys));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  console.log('TODAS LAS PROPS:', JSON.stringify(Object.entries(data.results[0]?.properties || {}).map(([k, v]: any) => ({ key: k, type: v?.type }))));
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const titleKey = propsKeys.find((k) => data.results[0].properties[k]?.type === 'title') || 'Nombre';
-  console.log('VENCIMIENTOS title key:', titleKey);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fechaKey = propsKeys.find((k) => data.results[0].properties[k]?.type === 'date') || 'Fecha limite';
-  console.log('VENCIMIENTOS fecha key:', fechaKey);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vencimientos = data.results.map((v: any) => ({
     id: v.id,
-    nombre: v.properties[titleKey]?.title?.[0]?.plain_text || 'Sin nombre',
-    fecha: v.properties[fechaKey]?.date?.start || null,
+    nombre: v.properties?.['Título']?.title?.[0]?.plain_text || 'Sin nombre',
+    fecha: v.properties?.['Fecha límite']?.date?.start || null,
     estado: v.properties?.Estado?.select?.name || 'Pendiente',
   }));
 
-  console.log('VENCIMIENTOS mapeados:', JSON.stringify(vencimientos.slice(0, 2)));
+  console.log('Vencimientos encontrados:', vencimientos.length);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return vencimientos.sort((a: any, b: any) => {
