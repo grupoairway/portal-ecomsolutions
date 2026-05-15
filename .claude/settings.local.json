@@ -5,7 +5,9 @@
       "PowerShell($rng = New-Object System.Security.Cryptography.RNGCryptoServiceProvider; $bytes = New-Object byte[] 32; $rng.GetBytes\\($bytes\\); [Convert]::ToBase64String\\($bytes\\))",
       "PowerShell(Get-Process *)",
       "Bash(npm run *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

@@ -6,7 +6,7 @@ export async function enviarMagicLink(params: {
   email: string;
   nombre: string;
   token: string;
-}): Promise<void> {
+}): Promise<{ data: unknown; error: unknown }> {
   const url = `${process.env.BASE_URL}/auth/verify?token=${params.token}`;
 
   const html = `
@@ -75,7 +75,7 @@ export async function enviarMagicLink(params: {
 </html>
   `.trim();
 
-  await resend.emails.send({
+  return resend.emails.send({
     from: 'portal@ecomsolutions.es',
     to: params.email,
     subject: 'Tu enlace de acceso a EcomSolutions',
