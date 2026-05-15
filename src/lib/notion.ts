@@ -65,33 +65,66 @@ export async function buscarClientePorEmail(
 export async function obtenerVencimientosCliente(
   clienteId: string,
 ): Promise<VencimientoNotion[]> {
-  const response = await notion.databases.query({
-    database_id: process.env.NOTION_VENCIMIENTOS_DB!,
-    filter: {
-      property: 'Cliente',
-      relation: { contains: clienteId },
+  const res = await fetch(
+    `https://api.notion.com/v1/databases/${process.env.NOTION_VENCIMIENTOS_DB}/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28',
+      },
+      body: JSON.stringify({
+        filter: { property: 'Cliente', relation: { contains: clienteId } },
+        sorts: [{ property: 'Fecha', direction: 'ascending' }],
+      }),
+      cache: 'no-store',
     },
-    sorts: [{ property: 'Fecha de vencimiento', direction: 'ascending' }],
-  });
+  );
 
-  return response.results.map((page) => {
-    const p = page as unknown as {
-      id: string;
-      properties: {
-        'Nombre del vencimiento': { title: Array<{ plain_text: string }> };
-        'Fecha de vencimiento': { date: { start: string } | null };
-        Estado: { select: { name: string } | null };
-      };
-    };
+  if (!res.ok) {
+    console.error('Error fetching vencimientos:', res.status, await res.text());
+    return [];
+  }
+
+  const data = await res.json() as { results: unknown[] };
+  console.log('Vencimientos encontrados:', data.results.length);
+
+  return data.results.map((page) => {
+    const p = page as { id: string; properties: Record<string, unknown> };
+
+    function getTitle(keys: string[]): string {
+      for (const k of keys) {
+        const prop = p.properties[k] as { title?: Array<{ plain_text: string }> } | undefined;
+        const val = prop?.title?.[0]?.plain_text;
+        if (val) return val;
+      }
+      return '';
+    }
+
+    function getDate(keys: string[]): string {
+      for (const k of keys) {
+        const prop = p.properties[k] as { date?: { start: string } | null } | undefined;
+        const val = prop?.date?.start;
+        if (val) return val;
+      }
+      return '';
+    }
+
+    function getSelect(keys: string[]): string {
+      for (const k of keys) {
+        const prop = p.properties[k] as { select?: { name: string } | null } | undefined;
+        const val = prop?.select?.name;
+        if (val) return val;
+      }
+      return 'Pendiente';
+    }
 
     return {
       id: p.id,
-      nombre: p.properties['Nombre del vencimiento'].title[0]?.plain_text ?? '',
-      fecha: p.properties['Fecha de vencimiento'].date?.start ?? '',
-      estado: (p.properties.Estado.select?.name ?? 'Pendiente') as
-        | 'Pendiente'
-        | 'Presentado'
-        | 'Urgente',
+      nombre: getTitle(['Nombre', 'Name', 'Nombre del vencimiento']),
+      fecha: getDate(['Fecha', 'Fecha vencimiento', 'Fecha de vencimiento']),
+      estado: getSelect(['Estado']) as 'Pendiente' | 'Presentado' | 'Urgente',
     };
   });
 }

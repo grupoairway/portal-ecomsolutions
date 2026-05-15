@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { decodeSession } from '@/lib/session';
 import { obtenerVencimientosCliente, getDocumentosCliente, getInformesCliente, buscarClientePorEmail } from '@/lib/notion';
+import { parseMetricas } from '@/lib/informe-tipos';
 import type { DocumentoNotion } from '@/lib/notion';
 import VencimientosList from '@/components/VencimientosList';
 import GraficoBarras from '@/components/GraficoBarras';
@@ -33,12 +34,6 @@ export default async function DashboardPage() {
   const session = decodeSession(sessionCookie.value);
   if (!session) redirect('/');
 
-  console.log('=== DASHBOARD ===')
-  console.log('Session cookie value (primeros 100 chars):', sessionCookie?.value?.substring(0, 100))
-  console.log('clienteId decodificado:', session?.clienteId)
-  console.log('email decodificado:', session?.email)
-  console.log('nombre decodificado:', session?.nombre)
-
   // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
   let nombreCliente = session.nombre
   if (!nombreCliente || nombreCliente === 'Cliente') {
@@ -52,14 +47,44 @@ export default async function DashboardPage() {
     getInformesCliente(session.clienteId).catch(() => []),
   ]);
 
-  const primerInforme = informes[0] ?? null;
-  console.log('Informe encontrado:', primerInforme?.id)
-  console.log('MetricasJSON length:', primerInforme?.metricasJSON?.length)
-  console.log('MetricasJSON preview:', primerInforme?.metricasJSON?.substring(0, 200))
-
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
-  const datosGraficoBarra: { periodo: string; ingresos: number; gastos: number }[] = [];
-  const datosGraficoLinea: { periodo: string; resultado: number }[] = [];
+
+  // Split vencimientos: próximos (>= hoy) y historial reciente (últimos 3 meses)
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const hace3meses = new Date(hoy);
+  hace3meses.setMonth(hace3meses.getMonth() - 3);
+  const vencimientosProximos = vencimientos.filter(v => !v.fecha || new Date(v.fecha) >= hoy);
+  const vencimientosHistorial = vencimientos.filter(v => {
+    if (!v.fecha) return false;
+    const fv = new Date(v.fecha);
+    return fv < hoy && fv >= hace3meses;
+  });
+
+  // Build chart data from all informes, sorted chronologically
+  const sortedInformes = [...informes].sort((a, b) => a.fechaSubida.localeCompare(b.fechaSubida));
+  const datosGraficoBarra = sortedInformes
+    .map(inf => {
+      if (!inf.metricasJSON) return null;
+      const m = parseMetricas(inf.metricasJSON);
+      return {
+        periodo: inf.periodo || inf.ejercicio || 'Sin período',
+        ingresos: m.ingresos.actual,
+        gastos: Math.abs(m.otros_gastos.actual) + Math.abs(m.gastos_personal.actual),
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
+
+  const datosGraficoLinea = sortedInformes
+    .map(inf => {
+      if (!inf.metricasJSON) return null;
+      const m = parseMetricas(inf.metricasJSON);
+      return {
+        periodo: inf.periodo || inf.ejercicio || 'Sin período',
+        resultado: m.resultado_ejercicio.actual,
+      };
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
 
   return (
     <>
@@ -69,8 +94,18 @@ export default async function DashboardPage() {
           <h2 className={styles.sectionTitle}>Vencimientos próximos</h2>
         </div>
         <div className={styles.sectionCard}>
-          <VencimientosList vencimientos={vencimientos} />
+          <VencimientosList vencimientos={vencimientosProximos} />
         </div>
+        {vencimientosHistorial.length > 0 && (
+          <>
+            <div className={styles.sectionHeader} style={{ marginTop: 24 }}>
+              <h2 className={styles.sectionTitle}>Historial reciente</h2>
+            </div>
+            <div className={styles.sectionCard}>
+              <VencimientosList vencimientos={vencimientosHistorial} />
+            </div>
+          </>
+        )}
       </section>
 
       {/* RESUMEN FINANCIERO */}

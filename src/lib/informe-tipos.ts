@@ -23,7 +23,7 @@ export interface InformeNotion {
 }
 
 function parseMetrica(m: unknown): { actual: number; anterior: number; variacion: number } {
-  const obj = m as { actual?: unknown; anterior?: unknown; variacion?: unknown } | null | undefined;
+  const obj = m as { actual?: unknown; anterior?: unknown; variacion?: unknown; porcentaje?: unknown } | null | undefined;
   const parseNum = (v: unknown): number => {
     const n = parseFloat(String(v ?? 0).replace(',', '.'));
     return isNaN(n) ? 0 : n;
@@ -31,7 +31,7 @@ function parseMetrica(m: unknown): { actual: number; anterior: number; variacion
   return {
     actual: parseNum(obj?.actual),
     anterior: parseNum(obj?.anterior),
-    variacion: parseNum(obj?.variacion),
+    variacion: parseNum(obj?.variacion ?? obj?.porcentaje),
   };
 }
 
