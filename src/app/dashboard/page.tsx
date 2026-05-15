@@ -99,7 +99,7 @@ export default async function DashboardPage() {
 
       {/* RESUMEN FINANCIERO */}
       <section className={styles.section}>
-        <FinancieroSection informes={informes} />
+        <FinancieroSection informes={informes} nombreCliente={nombreCliente} />
       </section>
 
       {/* GRAFICOS */}

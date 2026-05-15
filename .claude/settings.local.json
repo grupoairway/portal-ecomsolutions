@@ -10,7 +10,8 @@
       "Bash(git push *)",
       "Read(//mnt/c/Users/**)",
       "Bash(dir \"C:\\\\Users\\\\Avalon\")",
-      "Read(//mnt/**)"
+      "Read(//mnt/**)",
+      "Bash(npm install *)"
     ]
   }
 }

@@ -9,6 +9,8 @@ import GraficoLineas from '@/components/GraficoLineas';
 import DashboardNav from '@/components/DashboardNav';
 import DocumentosGrid from '@/components/DocumentosGrid';
 import type { VencimientoNotion, DocumentoNotion } from '@/lib/notion';
+import type { MetricasInforme } from '@/lib/informe-tipos';
+import AnalisisIA from '@/components/AnalisisIA';
 import styles from '../dashboard/dashboard.module.css';
 import selectorStyles from './demo.module.css';
 
@@ -62,6 +64,27 @@ const DATOS_LINEAS = [
   { periodo: 'May', resultado: 11200 },
   { periodo: 'Jun', resultado: 8920 },
 ];
+
+function periodoAMetricasInforme(p: typeof PERIODOS_DEMO[0]): MetricasInforme {
+  const m = (actual: number, variacion: number) => ({
+    actual,
+    anterior: Math.round(actual / (1 + variacion / 100)),
+    variacion,
+  });
+  return {
+    ingresos: m(p.metricas.ingresos, p.variaciones.ingresos),
+    gastos_personal: { actual: Math.round(p.metricas.ingresos * 0.32), anterior: 0, variacion: 0 },
+    otros_gastos: { actual: Math.round(p.metricas.ingresos * 0.26), anterior: 0, variacion: 0 },
+    resultado_explotacion: { actual: Math.round(p.metricas.resultado * 1.15), anterior: 0, variacion: 0 },
+    resultado_ejercicio: m(p.metricas.resultado, p.variaciones.resultado),
+    total_activo: m(p.metricas.activo, p.variaciones.activo),
+    caja: m(p.metricas.caja, p.variaciones.caja),
+    clientes_deudores: { actual: Math.round(p.metricas.activo * 0.14), anterior: 0, variacion: 0 },
+    patrimonio_neto: m(p.metricas.patrimonio, p.variaciones.patrimonio),
+    deudas_cp: m(p.metricas.deudas, p.variaciones.deudas),
+    proveedores: { actual: Math.round(p.metricas.deudas * 0.38), anterior: 0, variacion: 0 },
+  };
+}
 
 const PERIODOS_DEMO = [
   {
@@ -162,6 +185,12 @@ export default function DashboardDemoPage() {
               ))}
             </select>
           </div>
+          <AnalisisIA
+            key={periodo.label}
+            metricas={periodoAMetricasInforme(periodo)}
+            periodo={periodo.label}
+            nombreCliente="Empresa Demo S.L."
+          />
           <div className={styles.metricsGrid}>
             <MetricCard icono="💰" label="Ingresos del período" valor={periodo.metricas.ingresos} variacion={periodo.variaciones.ingresos} />
             <MetricCard icono="📊" label="Resultado del ejercicio" valor={periodo.metricas.resultado} variacion={periodo.variaciones.resultado} />
