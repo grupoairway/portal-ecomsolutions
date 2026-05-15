@@ -84,8 +84,29 @@
   color: var(--color-warning);
 }
 
+.diasMuyUrgente {
+  color: #f97316;
+  font-weight: 700;
+}
+
 .diasVencido {
   color: var(--color-danger);
+  font-weight: 700;
+}
+
+.verTodos {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--color-primary, #2563eb);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.verTodos:hover {
+  text-decoration: underline;
 }
 
 .empty {

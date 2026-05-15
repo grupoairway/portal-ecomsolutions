@@ -58,9 +58,11 @@ export default async function DashboardPage() {
   const hace90ISO = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const vencimientosProximos = vencimientos.filter(v => !v.fecha || v.fecha >= hoyISO);
   console.log('Próximos filtrados:', vencimientosProximos?.length);
-  const vencimientosHistorial = vencimientos.filter(
-    v => v.fecha && v.fecha < hoyISO && v.fecha >= hace90ISO,
-  );
+  const vencimientosHistorial = vencimientos
+    .filter((v: { fecha: string | null }) => v.fecha && v.fecha < hoyISO && v.fecha >= hace90ISO)
+    .sort((a: { fecha: string | null }, b: { fecha: string | null }) =>
+      (b.fecha ?? '').localeCompare(a.fecha ?? ''),
+    );
 
   // Build chart data from all informes, sorted chronologically
   const sortedInformes = [...informes].sort((a, b) => a.fechaSubida.localeCompare(b.fechaSubida));
@@ -103,7 +105,7 @@ export default async function DashboardPage() {
               <h2 className={styles.sectionTitle}>Historial reciente</h2>
             </div>
             <div className={styles.sectionCard}>
-              <VencimientosList vencimientos={vencimientosHistorial} />
+              <VencimientosList vencimientos={vencimientosHistorial} mostrarExpand={false} />
             </div>
           </>
         )}
