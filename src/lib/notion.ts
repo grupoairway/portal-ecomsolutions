@@ -76,7 +76,6 @@ export async function obtenerVencimientosCliente(
       },
       body: JSON.stringify({
         filter: { property: 'Cliente', relation: { contains: clienteId } },
-        sorts: [{ property: 'Fecha limite', direction: 'ascending' }],
       }),
       cache: 'no-store',
     },
@@ -99,29 +98,19 @@ export async function obtenerVencimientosCliente(
     });
   });
 
-  return (data.results || []).map((v: unknown) => {
-    const page = v as { id: string; properties: Record<string, unknown> };
-    const props = page.properties;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vencimientos = (data.results || []).map((v: any) => ({
+    id: v.id,
+    nombre: v.properties?.Nombre?.title?.[0]?.plain_text || 'Sin nombre',
+    fecha: v.properties?.['Fecha limite']?.date?.start || null,
+    estado: (v.properties?.Estado?.select?.name || 'Pendiente') as
+      'Pendiente' | 'Presentado' | 'Urgente',
+  }));
 
-    type TitleProp = { title?: Array<{ plain_text: string }> };
-    type DateProp  = { date?: { start: string } | null };
-    type SelectProp = { select?: { name: string } | null };
-
-    const nombre =
-      (props?.Nombre as TitleProp)?.title?.[0]?.plain_text ||
-      (props?.Name as TitleProp)?.title?.[0]?.plain_text ||
-      'Sin nombre';
-
-    const fecha =
-      (props?.['Fecha limite'] as DateProp)?.date?.start ||
-      (props?.Fecha as DateProp)?.date?.start ||
-      (props?.['Fecha vencimiento'] as DateProp)?.date?.start ||
-      null;
-
-    const estado = ((props?.Estado as SelectProp)?.select?.name || 'Pendiente') as
-      'Pendiente' | 'Presentado' | 'Urgente';
-
-    return { id: page.id, nombre, fecha, estado };
+  return vencimientos.sort((a, b) => {
+    if (!a.fecha) return 1;
+    if (!b.fecha) return -1;
+    return a.fecha.localeCompare(b.fecha);
   });
 }
 
