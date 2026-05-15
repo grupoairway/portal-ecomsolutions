@@ -62,9 +62,8 @@ export async function buscarClientePorEmail(
   };
 }
 
-export async function obtenerVencimientosCliente(
-  clienteId: string,
-): Promise<VencimientoNotion[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getVencimientosCliente(clienteId: string): Promise<any[]> {
   const res = await fetch(
     `https://api.notion.com/v1/databases/${process.env.NOTION_VENCIMIENTOS_DB}/query`,
     {
@@ -81,40 +80,36 @@ export async function obtenerVencimientosCliente(
     },
   );
 
-  if (!res.ok) {
-    console.error('Error fetching vencimientos:', res.status, await res.text());
+  const data = await res.json();
+
+  if (!data.results || data.results.length === 0) {
+    console.log('VENCIMIENTOS: 0 resultados para clienteId:', clienteId);
     return [];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = await res.json() as { results: any[] };
-  console.log('Total vencimientos obtenidos de Notion:', data.results?.length);
-  console.log('Props vencimiento 0:', JSON.stringify(Object.keys(data.results[0]?.properties || {})));
-  console.log('Title prop:', JSON.stringify(
-    data.results[0]?.properties?.Título ||
-    data.results[0]?.properties?.Title ||
-    data.results[0]?.properties?.Nombre ||
-    data.results[0]?.properties?.Name
-  ));
-  console.log('Fecha prop:', JSON.stringify(
-    data.results[0]?.properties?.['Fecha limite'] ||
-    data.results[0]?.properties?.Fecha
-  ));
+  const propsKeys = Object.keys(data.results[0].properties);
+  console.log('VENCIMIENTOS props keys:', JSON.stringify(propsKeys));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const vencimientos = (data.results || []).map((v: any) => ({
+  const titleKey = propsKeys.find((k) => data.results[0].properties[k]?.type === 'title') || 'Nombre';
+  console.log('VENCIMIENTOS title key:', titleKey);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fechaKey = propsKeys.find((k) => data.results[0].properties[k]?.type === 'date') || 'Fecha limite';
+  console.log('VENCIMIENTOS fecha key:', fechaKey);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vencimientos = data.results.map((v: any) => ({
     id: v.id,
-    nombre: v.properties?.Título?.title?.[0]?.plain_text
-      || v.properties?.Title?.title?.[0]?.plain_text
-      || v.properties?.Nombre?.title?.[0]?.plain_text
-      || v.properties?.Name?.title?.[0]?.plain_text
-      || 'Sin nombre',
-    fecha: v.properties?.['Fecha limite']?.date?.start || null,
-    estado: (v.properties?.Estado?.select?.name || 'Pendiente') as
-      'Pendiente' | 'Presentado' | 'Urgente',
+    nombre: v.properties[titleKey]?.title?.[0]?.plain_text || 'Sin nombre',
+    fecha: v.properties[fechaKey]?.date?.start || null,
+    estado: v.properties?.Estado?.select?.name || 'Pendiente',
   }));
 
-  return vencimientos.sort((a, b) => {
+  console.log('VENCIMIENTOS mapeados:', JSON.stringify(vencimientos.slice(0, 2)));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return vencimientos.sort((a: any, b: any) => {
     if (!a.fecha) return 1;
     if (!b.fecha) return -1;
     return a.fecha.localeCompare(b.fecha);

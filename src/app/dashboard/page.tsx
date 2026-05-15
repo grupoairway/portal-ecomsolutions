@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { decodeSession } from '@/lib/session';
-import { obtenerVencimientosCliente, getDocumentosCliente, getInformesCliente, buscarClientePorEmail } from '@/lib/notion';
+import { getVencimientosCliente, getDocumentosCliente, getInformesCliente, buscarClientePorEmail } from '@/lib/notion';
 import { parseMetricas } from '@/lib/informe-tipos';
 import type { DocumentoNotion } from '@/lib/notion';
 import VencimientosList from '@/components/VencimientosList';
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
   }
 
   const [vencimientos, documentos, informes] = await Promise.all([
-    obtenerVencimientosCliente(session.clienteId).catch(() => []),
+    getVencimientosCliente(session.clienteId).catch(() => []),
     getDocumentosCliente(session.clienteId).catch(() => []),
     getInformesCliente(session.clienteId).catch(() => []),
   ]);
