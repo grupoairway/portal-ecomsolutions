@@ -40,6 +40,11 @@
   color: var(--color-danger);
 }
 
+.badgeNeutral {
+  background: #f3f4f6;
+  color: var(--color-muted);
+}
+
 .valor {
   font-size: 22px;
   font-weight: 700;

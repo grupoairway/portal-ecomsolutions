@@ -22,24 +22,38 @@ export interface InformeNotion {
   pygJSON: string | null;
 }
 
+function parseMetrica(m: unknown): { actual: number; anterior: number; variacion: number } {
+  const obj = m as { actual?: unknown; anterior?: unknown; variacion?: unknown } | null | undefined;
+  const parseNum = (v: unknown): number => {
+    const n = parseFloat(String(v ?? 0).replace(',', '.'));
+    return isNaN(n) ? 0 : n;
+  };
+  return {
+    actual: parseNum(obj?.actual),
+    anterior: parseNum(obj?.anterior),
+    variacion: parseNum(obj?.variacion),
+  };
+}
+
+const defaultMetrica = { actual: 0, anterior: 0, variacion: 0 };
+
 export function parseMetricas(json: string): MetricasInforme {
-  const defaultMetrica = { actual: 0, anterior: 0, variacion: 0 }
   try {
     const data = JSON.parse(json)
     const b = data.balance || {}
     const p = data.pyg || {}
     return {
-      ingresos:              p.ingresos              || defaultMetrica,
-      gastos_personal:       p.gastosPersonal        || defaultMetrica,
-      otros_gastos:          p.otrosGastos           || defaultMetrica,
-      resultado_explotacion: p.resultadoExplotacion  || defaultMetrica,
-      resultado_ejercicio:   p.resultadoEjercicio    || defaultMetrica,
-      total_activo:          b.totalActivo           || defaultMetrica,
-      caja:                  b.caja                  || defaultMetrica,
-      clientes_deudores:     b.clientesDeudores      || defaultMetrica,
-      patrimonio_neto:       b.patrimonioNeto        || defaultMetrica,
-      deudas_cp:             b.deudasCP              || defaultMetrica,
-      proveedores:           b.proveedores           || defaultMetrica,
+      ingresos:              parseMetrica(p.ingresos),
+      gastos_personal:       parseMetrica(p.gastosPersonal),
+      otros_gastos:          parseMetrica(p.otrosGastos),
+      resultado_explotacion: parseMetrica(p.resultadoExplotacion),
+      resultado_ejercicio:   parseMetrica(p.resultadoEjercicio),
+      total_activo:          parseMetrica(b.totalActivo),
+      caja:                  parseMetrica(b.caja),
+      clientes_deudores:     parseMetrica(b.clientesDeudores),
+      patrimonio_neto:       parseMetrica(b.patrimonioNeto),
+      deudas_cp:             parseMetrica(b.deudasCP),
+      proveedores:           parseMetrica(b.proveedores),
     }
   } catch {
     return {

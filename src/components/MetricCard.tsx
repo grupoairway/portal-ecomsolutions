@@ -8,12 +8,11 @@ interface MetricCardProps {
   formato?: 'euros' | 'numero';
 }
 
-function formatearEuros(n: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(n);
+function formatearValor(n: number, formato: 'euros' | 'numero'): string {
+  if (formato === 'euros') {
+    return new Intl.NumberFormat('es-ES').format(n) + ' €';
+  }
+  return n.toLocaleString('es-ES');
 }
 
 export default function MetricCard({
@@ -23,23 +22,33 @@ export default function MetricCard({
   variacion,
   formato = 'euros',
 }: MetricCardProps) {
-  const isPositive = variacion !== null && variacion !== undefined && variacion >= 0;
   const valorValido = valor !== undefined && valor !== null;
+  const tieneVariacion = variacion !== null && variacion !== undefined;
+  const esPositiva = tieneVariacion && variacion! > 0;
+  const esNegativa = tieneVariacion && variacion! < 0;
 
   return (
     <div className={styles.card}>
       <div className={styles.header}>
         <span className={styles.icon}>{icono}</span>
-        {variacion !== null && variacion !== undefined && (
-          <span className={`${styles.badge} ${isPositive ? styles.badgePositive : styles.badgeNegative}`}>
-            {isPositive ? '▲' : '▼'} {Math.abs(variacion).toFixed(1)}%
-          </span>
+        {tieneVariacion && (
+          esPositiva ? (
+            <span className={`${styles.badge} ${styles.badgePositive}`}>
+              ▲ +{variacion!.toFixed(1)}%
+            </span>
+          ) : esNegativa ? (
+            <span className={`${styles.badge} ${styles.badgeNegative}`}>
+              ▼ {variacion!.toFixed(1)}%
+            </span>
+          ) : (
+            <span className={`${styles.badge} ${styles.badgeNeutral}`}>
+              —
+            </span>
+          )
         )}
       </div>
       <div className={styles.valor}>
-        {valorValido
-          ? (formato === 'euros' ? formatearEuros(valor!) : valor!.toLocaleString('es-ES'))
-          : '—'}
+        {valorValido ? formatearValor(valor!, formato) : '—'}
       </div>
       <div className={styles.label}>{label}</div>
     </div>
