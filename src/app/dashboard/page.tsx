@@ -49,10 +49,15 @@ export default async function DashboardPage() {
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
 
+  console.log('Vencimientos totales recibidos:', vencimientos?.length);
+  console.log('Hoy:', new Date().toISOString().split('T')[0]);
+  console.log('Primeros 3:', JSON.stringify(vencimientos?.slice(0, 3)));
+
   // Split vencimientos: próximos (>= hoy) y historial reciente (últimos 90 días)
   const hoyISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const hace90ISO = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const vencimientosProximos = vencimientos.filter(v => !v.fecha || v.fecha >= hoyISO);
+  console.log('Próximos filtrados:', vencimientosProximos?.length);
   const vencimientosHistorial = vencimientos.filter(
     v => v.fecha && v.fecha < hoyISO && v.fecha >= hace90ISO,
   );

@@ -88,7 +88,16 @@ export async function obtenerVencimientosCliente(
   }
 
   const data = await res.json() as { results: unknown[] };
-  console.log('Vencimientos encontrados:', data.results.length);
+  console.log('Total vencimientos obtenidos de Notion:', data.results?.length);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (data.results as any[])?.slice(0, 3).forEach((v: any) => {
+    console.log('Vencimiento:', {
+      nombre: v.properties?.Nombre?.title?.[0]?.plain_text,
+      fechaLimite: v.properties?.['Fecha limite']?.date?.start,
+      estado: v.properties?.Estado?.select?.name,
+      clienteRelation: v.properties?.Cliente?.relation?.[0]?.id,
+    });
+  });
 
   return (data.results || []).map((v: unknown) => {
     const page = v as { id: string; properties: Record<string, unknown> };
