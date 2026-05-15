@@ -13,7 +13,6 @@ interface Vencimiento {
 interface VencimientosListProps {
   vencimientos: Vencimiento[];
   maxInicial?: number;
-  mostrarExpand?: boolean;
 }
 
 function limpiarNombre(nombre: string): string {
@@ -23,20 +22,21 @@ function limpiarNombre(nombre: string): string {
   return nombre;
 }
 
-function formatearFecha(fecha: string): string {
-  return new Date(fecha).toLocaleDateString('es-ES', {
+function formatFecha(iso: string): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function diasRestantes(fecha: string): number {
+function calcDias(iso: string): number {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const fv = new Date(fecha);
-  fv.setHours(0, 0, 0, 0);
-  return Math.ceil((fv.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+  const fecha = new Date(iso);
+  fecha.setHours(0, 0, 0, 0);
+  return Math.ceil((fecha.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function diasBadge(dias: number): { texto: string; clase: string } {
@@ -52,11 +52,33 @@ const ESTADO_CONFIG: Record<string, { clase: string; label: string }> = {
   Urgente:    { clase: 'badgeDanger',  label: 'Urgente' },
 };
 
-export default function VencimientosList({
-  vencimientos,
-  maxInicial = 5,
-  mostrarExpand = true,
-}: VencimientosListProps) {
+function Fila({ v }: { v: Vencimiento }) {
+  const nombre = limpiarNombre(v.nombre);
+  const dias = v.fecha ? calcDias(v.fecha) : null;
+  const badge = dias !== null ? diasBadge(dias) : null;
+  const estadoConf = ESTADO_CONFIG[v.estado] ?? ESTADO_CONFIG.Pendiente;
+
+  return (
+    <li className={styles.item}>
+      <span className={styles.nombre}>{nombre}</span>
+      <span className={styles.fechaCol}>
+        {v.fecha ? formatFecha(v.fecha) : '—'}
+      </span>
+      <div className={styles.itemRight}>
+        {badge && (
+          <span className={`${styles.dias} ${styles[badge.clase]}`}>
+            {badge.texto}
+          </span>
+        )}
+        <span className={`${styles.badge} ${styles[estadoConf.clase]}`}>
+          {estadoConf.label}
+        </span>
+      </div>
+    </li>
+  );
+}
+
+export default function VencimientosList({ vencimientos, maxInicial = 5 }: VencimientosListProps) {
   const [expandido, setExpandido] = useState(false);
 
   if (vencimientos.length === 0) {
@@ -68,46 +90,40 @@ export default function VencimientosList({
     );
   }
 
-  const mostrar = mostrarExpand && !expandido
-    ? vencimientos.slice(0, maxInicial)
-    : vencimientos;
-  const hayMas = mostrarExpand && vencimientos.length > maxInicial;
+  const vencidos = vencimientos.filter(v => v.fecha && calcDias(v.fecha) <= 0);
+  const proximos = vencimientos.filter(v => !v.fecha || calcDias(v.fecha) > 0);
+  const proximosMostrar = expandido ? proximos : proximos.slice(0, maxInicial);
+  const hayMas = proximos.length > maxInicial;
 
   return (
     <div>
-      <ul className={styles.lista}>
-        {mostrar.map((v) => {
-          const nombre = limpiarNombre(v.nombre);
-          const dias = v.fecha ? diasRestantes(v.fecha) : null;
-          const badge = dias !== null ? diasBadge(dias) : null;
-          const estadoConf = ESTADO_CONFIG[v.estado] ?? ESTADO_CONFIG.Pendiente;
+      {vencidos.length > 0 && (
+        <>
+          <p className={styles.seccionLabel} style={{ color: 'var(--color-danger)' }}>
+            ⚠️ Vencidos
+          </p>
+          <ul className={styles.lista}>
+            {vencidos.map(v => <Fila key={v.id} v={v} />)}
+          </ul>
+        </>
+      )}
 
-          return (
-            <li key={v.id} className={styles.item}>
-              <div className={styles.itemLeft}>
-                <span className={styles.nombre}>{nombre}</span>
-                {v.fecha && (
-                  <span className={styles.fecha}>{formatearFecha(v.fecha)}</span>
-                )}
-              </div>
-              <div className={styles.itemRight}>
-                <span className={`${styles.badge} ${styles[estadoConf.clase]}`}>
-                  {estadoConf.label}
-                </span>
-                {badge && (
-                  <span className={`${styles.dias} ${styles[badge.clase]}`}>
-                    {badge.texto}
-                  </span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      {hayMas && (
-        <button className={styles.verTodos} onClick={() => setExpandido(!expandido)}>
-          {expandido ? 'Ver menos' : `Ver todos (${vencimientos.length})`}
-        </button>
+      {proximos.length > 0 && (
+        <>
+          {vencidos.length > 0 && (
+            <p className={styles.seccionLabel} style={{ marginTop: 16 }}>
+              Próximos
+            </p>
+          )}
+          <ul className={styles.lista}>
+            {proximosMostrar.map(v => <Fila key={v.id} v={v} />)}
+          </ul>
+          {hayMas && (
+            <button className={styles.verTodos} onClick={() => setExpandido(!expandido)}>
+              {expandido ? 'Ver menos' : `Ver todos (${proximos.length})`}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

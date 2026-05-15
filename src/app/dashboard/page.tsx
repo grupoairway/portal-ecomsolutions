@@ -49,20 +49,7 @@ export default async function DashboardPage() {
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
 
-  console.log('Vencimientos totales recibidos:', vencimientos?.length);
-  console.log('Hoy:', new Date().toISOString().split('T')[0]);
-  console.log('Primeros 3:', JSON.stringify(vencimientos?.slice(0, 3)));
-
-  // Split vencimientos: próximos (>= hoy) y historial reciente (últimos 90 días)
-  const hoyISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const hace90ISO = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const vencimientosProximos = vencimientos.filter(v => !v.fecha || v.fecha >= hoyISO);
-  console.log('Próximos filtrados:', vencimientosProximos?.length);
-  const vencimientosHistorial = vencimientos
-    .filter((v: { fecha: string | null }) => v.fecha && v.fecha < hoyISO && v.fecha >= hace90ISO)
-    .sort((a: { fecha: string | null }, b: { fecha: string | null }) =>
-      (b.fecha ?? '').localeCompare(a.fecha ?? ''),
-    );
+  // El componente VencimientosList separa internamente vencidos/próximos
 
   // Build chart data from all informes, sorted chronologically
   const sortedInformes = [...informes].sort((a, b) => a.fechaSubida.localeCompare(b.fechaSubida));
@@ -94,21 +81,11 @@ export default async function DashboardPage() {
       {/* VENCIMIENTOS */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Vencimientos próximos</h2>
+          <h2 className={styles.sectionTitle}>Vencimientos</h2>
         </div>
         <div className={styles.sectionCard}>
-          <VencimientosList vencimientos={vencimientosProximos} />
+          <VencimientosList vencimientos={vencimientos} />
         </div>
-        {vencimientosHistorial.length > 0 && (
-          <>
-            <div className={styles.sectionHeader} style={{ marginTop: 24 }}>
-              <h2 className={styles.sectionTitle}>Historial reciente</h2>
-            </div>
-            <div className={styles.sectionCard}>
-              <VencimientosList vencimientos={vencimientosHistorial} mostrarExpand={false} />
-            </div>
-          </>
-        )}
       </section>
 
       {/* RESUMEN FINANCIERO */}
