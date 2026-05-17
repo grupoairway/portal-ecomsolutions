@@ -51,6 +51,12 @@ export function parseExcelFilas(rows: unknown[], seccion: FilaBalance['seccion']
     let codigo = col0;
     let descripcion = col1 || col2;
 
+    // Ignorar filas que son solo años (cabeceras del Excel tipo "2026", "2025")
+    if (/^20[2-3]\d$/.test(descripcion.trim())) continue;
+
+    // Ignorar filas de cabecera donde col0 vacío y col1 contiene texto de cabecera
+    if (!col0 && /balance de situaci[oó]n|empresa:|domicilio|periodo|cuenta de p[eé]rdidas/i.test(col1)) continue;
+
     if (/^\d{9}$/.test(col2)) {
       // Cuenta individual (9 dígitos numéricos en col2)
       nivel = 3;

@@ -91,6 +91,7 @@ export default function FinancieroSection({ informes, nombreCliente = 'tu empres
               analisis={analisisTexto}
               filasBalance={filasBalance}
               filasPyG={filasPyG}
+              esperandoAnalisis={analisisTexto === null}
             />
           )}
         </div>

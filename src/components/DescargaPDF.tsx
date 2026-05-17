@@ -11,11 +11,12 @@ interface Props {
   analisis: string | null;
   filasBalance: FilaBalance[] | null;
   filasPyG: FilaBalance[] | null;
+  esperandoAnalisis?: boolean;
 }
 
 type RGB = [number, number, number];
 
-export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis, filasBalance, filasPyG }: Props) {
+export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis, filasBalance, filasPyG, esperandoAnalisis = false }: Props) {
   const [generando, setGenerando] = useState(false);
 
   const generarPDF = async () => {
@@ -243,10 +244,14 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
     }
   };
 
+  const deshabilitado = generando || esperandoAnalisis;
+  const label = generando ? 'Generando PDF...' : '📄 Descargar PDF';
+
   return (
     <button
-      onClick={generarPDF}
-      disabled={generando}
+      onClick={deshabilitado ? undefined : generarPDF}
+      disabled={deshabilitado}
+      title={esperandoAnalisis && !generando ? 'Esperando análisis...' : undefined}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -254,17 +259,17 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
         padding: '7px 14px',
         fontSize: 13,
         fontWeight: 600,
-        color: generando ? '#9ca3af' : '#2563eb',
-        background: generando ? '#f3f4f6' : '#eff6ff',
-        border: `1px solid ${generando ? '#e5e7eb' : '#bfdbfe'}`,
+        color: deshabilitado ? '#9ca3af' : '#2563eb',
+        background: deshabilitado ? '#f3f4f6' : '#eff6ff',
+        border: `1px solid ${deshabilitado ? '#e5e7eb' : '#bfdbfe'}`,
         borderRadius: 8,
-        cursor: generando ? 'not-allowed' : 'pointer',
+        cursor: deshabilitado ? 'not-allowed' : 'pointer',
         whiteSpace: 'nowrap',
         transition: 'all 0.15s',
         flexShrink: 0,
       }}
     >
-      {generando ? 'Generando PDF...' : '📄 Descargar PDF'}
+      {label}
     </button>
   );
 }
