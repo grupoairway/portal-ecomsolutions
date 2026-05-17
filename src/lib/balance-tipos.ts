@@ -21,6 +21,9 @@ function parseNum(v: unknown): number | null {
   return isNaN(n) ? null : n;
 }
 
+const esAño = (v: unknown): boolean =>
+  typeof v === 'number' && v >= 2020 && v <= 2035;
+
 export function parseExcelFilas(rows: unknown[], seccion: FilaBalance['seccion']): FilaBalance[] {
   if (!Array.isArray(rows)) return [];
   const filas: FilaBalance[] = [];
@@ -28,6 +31,9 @@ export function parseExcelFilas(rows: unknown[], seccion: FilaBalance['seccion']
   for (const rawRow of rows) {
     if (!Array.isArray(rawRow)) continue;
     const row = rawRow as unknown[];
+
+    // Detectar filas de cabecera con años en columnas de valores — filtro prioritario
+    if (esAño(row[4]) || esAño(row[5])) continue;
 
     const col0 = String(row[0] ?? '').trim();
     const col1 = String(row[1] ?? '').trim();
@@ -43,32 +49,17 @@ export function parseExcelFilas(rows: unknown[], seccion: FilaBalance['seccion']
     // Ignorar filas sin valores numéricos
     if (col4 === null && col5 === null) continue;
 
-    // Ignorar cabeceras
+    // Ignorar cabeceras de texto conocidas
     const textoFila = (col0 + ' ' + col1 + ' ' + col2).toLowerCase();
     if (IGNORAR.some(h => textoFila.includes(h))) continue;
+    if (!col0 && /balance de situaci[oó]n|empresa:|domicilio|periodo|cuenta de p[eé]rdidas/i.test(col1)) continue;
 
     let nivel: 1 | 2 | 3 = 1;
     let codigo = col0;
     let descripcion = col1 || col2;
 
-    // Ignorar filas que son solo años en descripción (cabeceras del Excel tipo "2026", "2025")
+    // Ignorar filas cuya descripción es solo un año
     if (/^20[2-3]\d$/.test(descripcion.trim())) continue;
-
-    // Ignorar filas de cabecera donde col0 vacío y col1 contiene texto de cabecera
-    if (!col0 && /balance de situaci[oó]n|empresa:|domicilio|periodo|cuenta de p[eé]rdidas/i.test(col1)) continue;
-
-    // Ignorar filas donde col[4] o col[5] son años (2020-2035) sin descripción real
-    const esFilaAño = (
-      (typeof row[4] === 'number' && row[4] >= 2020 && row[4] <= 2035) ||
-      (typeof row[5] === 'number' && row[5] >= 2020 && row[5] <= 2035)
-    ) && (!descripcion || descripcion.trim() === '');
-    if (esFilaAño) continue;
-
-    // Ignorar filas sin descripción ni valores reales
-    const sinDatos = !descripcion &&
-      (row[4] === null || row[4] === undefined || row[4] === '') &&
-      (row[5] === null || row[5] === undefined || row[5] === '');
-    if (sinDatos) continue;
 
     if (/^\d{9}$/.test(col2)) {
       // Cuenta individual (9 dígitos numéricos en col2)
