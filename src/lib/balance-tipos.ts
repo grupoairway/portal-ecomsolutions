@@ -51,11 +51,24 @@ export function parseExcelFilas(rows: unknown[], seccion: FilaBalance['seccion']
     let codigo = col0;
     let descripcion = col1 || col2;
 
-    // Ignorar filas que son solo años (cabeceras del Excel tipo "2026", "2025")
+    // Ignorar filas que son solo años en descripción (cabeceras del Excel tipo "2026", "2025")
     if (/^20[2-3]\d$/.test(descripcion.trim())) continue;
 
     // Ignorar filas de cabecera donde col0 vacío y col1 contiene texto de cabecera
     if (!col0 && /balance de situaci[oó]n|empresa:|domicilio|periodo|cuenta de p[eé]rdidas/i.test(col1)) continue;
+
+    // Ignorar filas donde col[4] o col[5] son años (2020-2035) sin descripción real
+    const esFilaAño = (
+      (typeof row[4] === 'number' && row[4] >= 2020 && row[4] <= 2035) ||
+      (typeof row[5] === 'number' && row[5] >= 2020 && row[5] <= 2035)
+    ) && (!descripcion || descripcion.trim() === '');
+    if (esFilaAño) continue;
+
+    // Ignorar filas sin descripción ni valores reales
+    const sinDatos = !descripcion &&
+      (row[4] === null || row[4] === undefined || row[4] === '') &&
+      (row[5] === null || row[5] === undefined || row[5] === '');
+    if (sinDatos) continue;
 
     if (/^\d{9}$/.test(col2)) {
       // Cuenta individual (9 dígitos numéricos en col2)
