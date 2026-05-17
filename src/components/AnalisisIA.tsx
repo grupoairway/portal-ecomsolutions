@@ -7,9 +7,10 @@ interface Props {
   metricas: MetricasInforme;
   periodo: string;
   nombreCliente: string;
+  onAnalisis?: (texto: string) => void;
 }
 
-export default function AnalisisIA({ metricas, periodo, nombreCliente }: Props) {
+export default function AnalisisIA({ metricas, periodo, nombreCliente, onAnalisis }: Props) {
   const [analisis, setAnalisis] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +29,7 @@ export default function AnalisisIA({ metricas, periodo, nombreCliente }: Props) 
       .then((data: { analisis?: string; error?: string }) => {
         if (data.analisis) {
           setAnalisis(data.analisis);
+          onAnalisis?.(data.analisis);
         } else {
           setError('Sin análisis');
         }

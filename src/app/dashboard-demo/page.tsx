@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MetricCard from '@/components/MetricCard';
 import VencimientosList from '@/components/VencimientosList';
@@ -11,6 +11,7 @@ import DocumentosGrid from '@/components/DocumentosGrid';
 import type { VencimientoNotion, DocumentoNotion } from '@/lib/notion';
 import type { MetricasInforme } from '@/lib/informe-tipos';
 import AnalisisIA from '@/components/AnalisisIA';
+import DescargaPDF from '@/components/DescargaPDF';
 import styles from '../dashboard/dashboard.module.css';
 import selectorStyles from './demo.module.css';
 
@@ -106,7 +107,12 @@ const PERIODOS_DEMO = [
 
 export default function DashboardDemoPage() {
   const [periodoIdx, setPeriodoIdx] = useState(0);
+  const [analisisTexto, setAnalisisTexto] = useState<string | null>(null);
   const periodo = PERIODOS_DEMO[periodoIdx];
+
+  useEffect(() => {
+    setAnalisisTexto(null);
+  }, [periodoIdx]);
 
   return (
     <div className={styles.page}>
@@ -175,21 +181,32 @@ export default function DashboardDemoPage() {
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Resumen financiero · {periodo.label}</h2>
-            <select
-              className={selectorStyles.selector}
-              value={periodoIdx}
-              onChange={(e) => setPeriodoIdx(Number(e.target.value))}
-            >
-              {PERIODOS_DEMO.map((p, i) => (
-                <option key={p.label} value={i}>{p.label}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                className={selectorStyles.selector}
+                value={periodoIdx}
+                onChange={(e) => setPeriodoIdx(Number(e.target.value))}
+              >
+                {PERIODOS_DEMO.map((p, i) => (
+                  <option key={p.label} value={i}>{p.label}</option>
+                ))}
+              </select>
+              <DescargaPDF
+                metricas={periodoAMetricasInforme(periodo)}
+                periodo={periodo.label}
+                nombreCliente="Empresa Demo S.L."
+                analisis={analisisTexto}
+                filasBalance={null}
+                filasPyG={null}
+              />
+            </div>
           </div>
           <AnalisisIA
             key={periodo.label}
             metricas={periodoAMetricasInforme(periodo)}
             periodo={periodo.label}
             nombreCliente="Empresa Demo S.L."
+            onAnalisis={setAnalisisTexto}
           />
           <div className={styles.metricsGrid}>
             <MetricCard icono="💰" label="Ingresos del período" valor={periodo.metricas.ingresos} variacion={periodo.variaciones.ingresos} />

@@ -11,7 +11,10 @@
       "Read(//mnt/c/Users/**)",
       "Bash(dir \"C:\\\\Users\\\\Avalon\")",
       "Read(//mnt/**)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Avalon\\\\portal-ecomsolutions\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(node *)"
     ]
   }
 }
