@@ -230,12 +230,22 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
         return pagina + 1;
       };
 
+      const esFilaAñoBalance = (fila: FilaBalance) => {
+        if (fila.valorActual !== null && fila.valorActual >= 2020 && fila.valorActual <= 2035) return true;
+        if (fila.valorAnterior !== null && fila.valorAnterior >= 2020 && fila.valorAnterior <= 2035) return true;
+        if (!fila.descripcion && !fila.valorActual && !fila.valorAnterior) return true;
+        return false;
+      };
+
+      const filasBalanceFiltradas = (filasBalance ?? []).filter(f => !esFilaAñoBalance(f));
+      const filasPyGFiltradas = (filasPyG ?? []).filter(f => !esFilaAñoBalance(f));
+
       let paginaActual = 3;
-      if (filasBalance && filasBalance.length > 0) {
-        paginaActual = renderTabla(filasBalance, 'Balance de Situación', paginaActual);
+      if (filasBalanceFiltradas.length > 0) {
+        paginaActual = renderTabla(filasBalanceFiltradas, 'Balance de Situación', paginaActual);
       }
-      if (filasPyG && filasPyG.length > 0) {
-        renderTabla(filasPyG, 'Cuenta de Pérdidas y Ganancias', paginaActual);
+      if (filasPyGFiltradas.length > 0) {
+        renderTabla(filasPyGFiltradas, 'Cuenta de Pérdidas y Ganancias', paginaActual);
       }
 
       doc.save(`Informe_${nombreCliente.replace(/\s+/g, '_')}_${periodo.replace(/\s+/g, '_')}.pdf`);
