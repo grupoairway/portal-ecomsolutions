@@ -77,13 +77,16 @@ export async function POST(
       iban,
       motivo,
     });
-  } catch (emailError) {
-    console.error('ERROR enviando email:', emailError)
-    if (emailError instanceof Error) {
-      console.error('  message:', emailError.message)
-      console.error('  stack:', emailError.stack)
-    }
-    // No fallamos el request — la confirmación en Notion ya está guardada
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (emailError: any) {
+    console.error('ERROR email:', emailError.message)
+    // Temporal: incluir error en respuesta para diagnóstico
+    return NextResponse.json({
+      success: true,
+      notionActualizado: true,
+      emailError: emailError.message,
+      emailStack: emailError.stack?.substring(0, 200),
+    });
   }
 
   return NextResponse.json({ success: true });
