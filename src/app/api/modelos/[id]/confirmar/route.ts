@@ -79,14 +79,8 @@ export async function POST(
     });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (emailError: any) {
-    console.error('ERROR email:', emailError.message)
-    // Temporal: incluir error en respuesta para diagnóstico
-    return NextResponse.json({
-      success: true,
-      notionActualizado: true,
-      emailError: emailError.message,
-      emailStack: emailError.stack?.substring(0, 200),
-    });
+    console.error('ERROR email completo:', emailError.message, emailError.code, emailError.response)
+    // No cambiar el formato de respuesta - siempre devolver success true
   }
 
   return NextResponse.json({ success: true });
