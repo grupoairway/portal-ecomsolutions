@@ -44,8 +44,16 @@ export async function POST(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const page = await notion.pages.retrieve({ page_id: params.id }) as any;
-  const titulo: string = page.properties['Título']?.title?.[0]?.plain_text ?? 'Modelo';
-  console.log('Título del modelo:', titulo)
+  const props = page.properties;
+
+  const titulo: string = props['Título']?.title?.[0]?.plain_text ?? 'Modelo';
+  // Extract modelo number and periodo for the email subject
+  const modeloNum = titulo.match(/\b(\d{3})\b/)?.[1];
+  const modeloNombre = props['Modelo']?.select?.name ?? props['Modelo']?.rich_text?.[0]?.plain_text ?? (modeloNum ? `Modelo ${modeloNum}` : titulo);
+  const periodoFromTitle = titulo.match(/(\dT\s*\d{4}|\bAnual\s+\d{4})/i)?.[1]?.trim() ?? '';
+  const periodo = props['Período']?.select?.name ?? props['Período']?.rich_text?.[0]?.plain_text ?? props['Periodo']?.select?.name ?? periodoFromTitle;
+
+  console.log('Título:', titulo, '| Modelo:', modeloNombre, '| Período:', periodo)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateProps: Record<string, any> = {
@@ -63,8 +71,8 @@ export async function POST(
   try {
     await sendConfirmacionGestor({
       clienteNombre: session.nombre,
-      titulo,
-      accion,
+      modeloNombre,
+      periodo,
       accionLabel: ACCION_LABEL[accion] ?? accion,
       iban,
       motivo,

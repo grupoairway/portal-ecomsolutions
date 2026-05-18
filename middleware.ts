@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/auth/verify', '/api/auth/request', '/api/auth/verify', '/api/test-email', '/dashboard-demo'];
+const PUBLIC_PATHS = ['/', '/auth/verify', '/api/auth/request', '/api/auth/verify', '/dashboard-demo'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
@@ -31,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/upload/:path*', '/api/test-email'],
+  matcher: ['/dashboard/:path*', '/api/upload/:path*'],
 };

@@ -42,32 +42,35 @@ export async function sendMagicLink(to: string, nombre: string, magicUrl: string
 
 interface ConfirmacionParams {
   clienteNombre: string;
-  titulo: string;
-  accion: string;
+  modeloNombre: string;
+  periodo: string;
   accionLabel: string;
+  gestorEmail?: string;
   iban?: string;
   motivo?: string;
 }
 
 export async function sendConfirmacionGestor(params: ConfirmacionParams) {
-  const { clienteNombre, titulo, accionLabel, iban, motivo } = params
+  const { clienteNombre, modeloNombre, periodo, accionLabel, gestorEmail, iban, motivo } = params
+  const to = gestorEmail || 'info@ecomsolutions.es'
   const transporter = createTransporter()
 
-  console.log('=== CONFIRMAR MODELO ===')
+  console.log('=== CONFIRMAR MODELO - sendConfirmacionGestor ===')
   console.log('SMTP_PASSWORD exists:', !!process.env.SMTP_PASSWORD)
-  console.log('Enviando email a: info@ecomsolutions.es')
-  console.log('Subject:', `✅ ${clienteNombre} ha confirmado ${titulo}`)
+  console.log('Enviando email a:', to)
+  console.log('Subject:', `[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`)
 
   const result = await transporter.sendMail({
     from: 'EcomSolutions <noreply@ecomsolutions.es>',
-    to: 'info@ecomsolutions.es',
-    subject: `✅ ${clienteNombre} ha confirmado ${titulo}`,
+    to,
+    subject: `[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`,
     html: `
       <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
         <h2 style="color:#0f172a;margin-bottom:20px;">✅ Confirmación de modelo fiscal</h2>
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
-          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Modelo</td><td style="padding:8px 0;font-weight:600;">${titulo}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Modelo</td><td style="padding:8px 0;font-weight:600;">${modeloNombre}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Período</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Acción</td><td style="padding:8px 0;font-weight:600;">${accionLabel}</td></tr>
           ${iban ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">IBAN</td><td style="padding:8px 0;font-weight:600;">${iban}</td></tr>` : ''}
           ${motivo ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Motivo</td><td style="padding:8px 0;font-weight:600;">${motivo}</td></tr>` : ''}
