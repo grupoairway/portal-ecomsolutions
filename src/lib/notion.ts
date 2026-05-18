@@ -1,6 +1,8 @@
 import { Client } from '@notionhq/client';
 export type { MetricasInforme, InformeNotion } from './informe-tipos';
 export { parseMetricas } from './informe-tipos';
+export type { ModeloVencimiento } from './modelos-tipos';
+import type { ModeloVencimiento } from './modelos-tipos';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
@@ -187,6 +189,63 @@ export async function getUltimoInforme(
 ): Promise<import('./informe-tipos').InformeNotion | null> {
   const informes = await getInformesCliente(clienteId);
   return informes[0] ?? null;
+}
+
+export async function getModelosCliente(clienteId: string): Promise<ModeloVencimiento[]> {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_VENCIMIENTOS_DB!,
+    filter: {
+      and: [
+        { property: 'Cliente', relation: { contains: clienteId } },
+        {
+          or: [
+            { property: 'Estado', select: { equals: 'Listo para presentar' } },
+            { property: 'Estado', select: { equals: 'Confirmado' } },
+            { property: 'Estado', select: { equals: 'Presentado' } },
+            { property: 'Estado', select: { equals: 'Domiciliado' } },
+          ],
+        },
+      ],
+    },
+    sorts: [{ property: 'Fecha límite', direction: 'ascending' }],
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return response.results.map((page: any) => {
+    const props = page.properties;
+    const titulo: string = props['Título']?.title?.[0]?.plain_text ?? '';
+    const modeloNum = titulo.match(/\b(\d{3})\b/)?.[1];
+    const periodoFromTitle = titulo.match(/(\dT\s*\d{4}|\bAnual\s+\d{4})/i)?.[1]?.trim();
+
+    return {
+      id: page.id as string,
+      modelo: (props['Modelo']?.select?.name ?? props['Modelo']?.rich_text?.[0]?.plain_text ?? modeloNum ?? titulo) as string,
+      periodo: (props['Período']?.select?.name ?? props['Período']?.rich_text?.[0]?.plain_text ?? props['Periodo']?.select?.name ?? periodoFromTitle ?? '') as string,
+      nombre: titulo,
+      fechaLimite: (props['Fecha límite']?.date?.start ?? null) as string | null,
+      estado: (props['Estado']?.select?.name ?? 'Pendiente') as string,
+      borradorUrl: (props['Borrador URL']?.url ?? null) as string | null,
+      resultadoModelo: (props['Resultado modelo']?.select?.name ?? null) as string | null,
+      importeAIngresar: (props['Importe a ingresar']?.number ?? null) as number | null,
+      confirmacionCliente: (props['Confirmación cliente']?.select?.name ?? null) as string | null,
+      formaPago: (props['Forma pago/cobro']?.select?.name ?? null) as string | null,
+      iban: (props['IBAN']?.rich_text?.[0]?.plain_text ?? null) as string | null,
+    };
+  });
+}
+
+export async function getModelosPendientesCount(clienteId: string): Promise<number> {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_VENCIMIENTOS_DB!,
+    filter: {
+      and: [
+        { property: 'Cliente', relation: { contains: clienteId } },
+        { property: 'Estado', select: { equals: 'Listo para presentar' } },
+      ],
+    },
+    page_size: 10,
+  });
+  return response.results.length;
 }
 
 export async function getDocumentosCliente(

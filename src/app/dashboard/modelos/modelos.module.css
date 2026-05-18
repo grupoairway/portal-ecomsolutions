@@ -1,0 +1,437 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.emptyMessage {
+  font-size: 14px;
+  color: var(--color-muted);
+  padding: 28px;
+  text-align: center;
+  background: var(--color-white);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+}
+
+/* ── Pending card ── */
+.pendienteCard {
+  background: var(--color-white);
+  border: 2px solid var(--color-blue-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirmedCard {
+  background: #f0fdf4;
+  border: 2px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modeloBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e40af;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.periodoText {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fechaLimite {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* ── Resultado badges ── */
+.resultadoBadge {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.resultadoPagar {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.resultadoDevolver {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.resultadoCero {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.resultadoInformativo {
+  background: var(--color-blue-light);
+  color: var(--color-blue);
+}
+
+/* ── Ver borrador link ── */
+.btnBorrador {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-blue);
+  background: var(--color-blue-light);
+  border: 1px solid var(--color-blue-border);
+  border-radius: 7px;
+  padding: 5px 12px;
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btnBorrador:hover {
+  background: #dbeafe;
+  border-color: var(--color-blue);
+}
+
+/* ── Action buttons ── */
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btnAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: 8px;
+  border: 1.5px solid;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  line-height: 1.3;
+  font-family: inherit;
+}
+
+.btnAction:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: var(--color-blue);
+  color: white;
+  border-color: var(--color-blue);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: var(--color-blue-dark);
+  border-color: var(--color-blue-dark);
+}
+
+.btnSecondary {
+  background: white;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background: var(--color-bg);
+  border-color: #9ca3af;
+}
+
+.btnWarning {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.btnWarning:hover:not(:disabled) {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.btnSuccess {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.btnSuccess:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* ── Inline input sections ── */
+.ibanSection {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ibanSection label,
+.motivoSection label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.ibanInput {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--color-text);
+  letter-spacing: 1px;
+  transition: border-color 0.15s;
+  font-family: 'Courier New', monospace;
+}
+
+.ibanInput:focus {
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ibanInputError {
+  border-color: var(--color-danger);
+}
+
+.inputError {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.motivoSection {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.motivoTextarea {
+  width: 100%;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.motivoTextarea:focus {
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.inputActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── WhatsApp fallback ── */
+.waFallback {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.waLink {
+  color: #25d366;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.waLink:hover {
+  text-decoration: underline;
+}
+
+/* ── Confirmed state ── */
+.confirmedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.confirmedFormaPago {
+  font-size: 13px;
+  color: #15803d;
+  margin-top: 6px;
+}
+
+/* ── History section ── */
+.historialList {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.historialItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.historialItem:last-child {
+  border-bottom: none;
+}
+
+.historialLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.historialInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.historialNombre {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historialMeta {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+.historialRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* ── Estado badges ── */
+.estadoBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.estadoPresentado {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.estadoDomiciliado {
+  background: var(--color-blue-light);
+  color: var(--color-blue);
+}
+
+.estadoConfirmado {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+@media (max-width: 640px) {
+  .cardHeader {
+    flex-direction: column;
+  }
+
+  .actionButtons {
+    flex-direction: column;
+  }
+
+  .btnAction {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .inputActions {
+    flex-direction: column;
+  }
+}

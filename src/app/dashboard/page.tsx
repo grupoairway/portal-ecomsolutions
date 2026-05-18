@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { decodeSession } from '@/lib/session';
-import { getVencimientosCliente, getDocumentosCliente, getInformesCliente, buscarClientePorEmail } from '@/lib/notion';
+import { getVencimientosCliente, getDocumentosCliente, getInformesCliente, getModelosCliente, buscarClientePorEmail } from '@/lib/notion';
 import { parseMetricas } from '@/lib/informe-tipos';
 import type { DocumentoNotion } from '@/lib/notion';
 import VencimientosList from '@/components/VencimientosList';
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
     if (clienteNotion?.nombre) nombreCliente = clienteNotion.nombre
   }
 
-  const [vencimientos, documentos, informes, consultasRes] = await Promise.all([
+  const [vencimientos, documentos, informes, consultasRes, modelos] = await Promise.all([
     getVencimientosCliente(session.clienteId).catch(() => []),
     getDocumentosCliente(session.clienteId).catch(() => []),
     getInformesCliente(session.clienteId).catch(() => []),
@@ -49,6 +49,7 @@ export default async function DashboardPage() {
       `${process.env.BASE_URL ?? 'http://localhost:3000'}/api/consultas?clienteId=${session.clienteId}`,
       { cache: 'no-store' },
     ).catch(() => null),
+    getModelosCliente(session.clienteId).catch(() => []),
   ]);
 
   interface ConsultaResumen { id: string; asunto: string; estado: string; fecha: string | null; }
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
     : [];
 
   const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
+  const modelosPendientes = modelos.filter(m => m.estado === 'Listo para presentar').slice(0, 2);
 
   // El componente VencimientosList separa internamente vencidos/próximos
 
@@ -110,6 +112,60 @@ export default async function DashboardPage() {
           <GraficoLineas datos={datosGraficoLinea} titulo="Resultado del ejercicio" />
         </div>
       </section>
+
+      {/* MODELOS PENDIENTES DE CONFIRMAR */}
+      {modelosPendientes.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Modelos pendientes de confirmar</h2>
+            <Link href="/dashboard/modelos" className={styles.docVerTodos}>
+              Ver todos →
+            </Link>
+          </div>
+          <div className={styles.sectionCard}>
+            {modelosPendientes.map((modelo, i) => (
+              <div
+                key={modelo.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 0',
+                  borderBottom: i < modelosPendientes.length - 1 ? '1px solid #f3f4f6' : 'none',
+                }}
+              >
+                <span style={{
+                  background: '#1e40af',
+                  color: 'white',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: '3px 9px',
+                  borderRadius: 5,
+                  flexShrink: 0,
+                }}>
+                  {modelo.modelo}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {modelo.nombre || `Modelo ${modelo.modelo} · ${modelo.periodo}`}
+                  </div>
+                  {modelo.importeAIngresar != null && modelo.resultadoModelo && (
+                    <div style={{ fontSize: 12, marginTop: 2, color: modelo.resultadoModelo === 'A pagar' ? '#b91c1c' : '#15803d' }}>
+                      {modelo.resultadoModelo}: {modelo.importeAIngresar.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
+                    </div>
+                  )}
+                </div>
+                <Link
+                  href="/dashboard/modelos"
+                  style={{ fontSize: 13, color: 'var(--color-blue)', fontWeight: 600, flexShrink: 0 }}
+                >
+                  Confirmar →
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* DOCUMENTOS RECIENTES */}
       <section className={styles.section}>

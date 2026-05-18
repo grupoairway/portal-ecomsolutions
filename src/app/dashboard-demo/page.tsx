@@ -8,8 +8,10 @@ import GraficoBarras from '@/components/GraficoBarras';
 import GraficoLineas from '@/components/GraficoLineas';
 import DashboardNav from '@/components/DashboardNav';
 import DocumentosGrid from '@/components/DocumentosGrid';
+import ModelosClient from '@/app/dashboard/modelos/ModelosClient';
 import type { VencimientoNotion, DocumentoNotion } from '@/lib/notion';
 import type { MetricasInforme } from '@/lib/informe-tipos';
+import type { ModeloVencimiento } from '@/lib/modelos-tipos';
 import AnalisisIA from '@/components/AnalisisIA';
 import DescargaPDF from '@/components/DescargaPDF';
 import styles from '../dashboard/dashboard.module.css';
@@ -27,6 +29,37 @@ const DOCUMENTOS: DocumentoNotion[] = [
   { id: 'd3', nombre: 'Escritura de constitución', tipo: 'Escrituras y contratos', fecha: '2025-01-15', urlDrive: '#', descripcion: null, ejercicio: '2025' },
   { id: 'd4', nombre: 'Nómina Enero 2026', tipo: 'Nóminas', fecha: '2026-01-31', urlDrive: '#', descripcion: null, ejercicio: '2026' },
   { id: 'd5', nombre: 'Notificación AEAT - Renta 2024', tipo: 'Notificaciones', fecha: '2026-03-10', urlDrive: '#', descripcion: null, ejercicio: '2026' },
+];
+
+const MODELOS_DEMO: ModeloVencimiento[] = [
+  {
+    id: 'm1',
+    modelo: '303',
+    periodo: '1T 2026',
+    nombre: 'Modelo 303 - IVA 1T 2026',
+    fechaLimite: '2026-04-20',
+    estado: 'Listo para presentar',
+    borradorUrl: '#',
+    resultadoModelo: 'A pagar',
+    importeAIngresar: 450,
+    confirmacionCliente: null,
+    formaPago: null,
+    iban: null,
+  },
+  {
+    id: 'm2',
+    modelo: '130',
+    periodo: '1T 2026',
+    nombre: 'Modelo 130 - IRPF 1T 2026',
+    fechaLimite: '2026-04-20',
+    estado: 'Listo para presentar',
+    borradorUrl: '#',
+    resultadoModelo: 'A devolver',
+    importeAIngresar: 230,
+    confirmacionCliente: null,
+    formaPago: null,
+    iban: null,
+  },
 ];
 
 const CONSULTAS_DEMO = [
@@ -225,6 +258,14 @@ export default function DashboardDemoPage() {
             <GraficoBarras datos={DATOS_BARRAS} titulo="Ingresos y gastos por período" />
             <GraficoLineas datos={DATOS_LINEAS} titulo="Resultado del ejercicio" />
           </div>
+        </section>
+
+        {/* MODELOS FISCALES */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Modelos pendientes de confirmar</h2>
+          </div>
+          <ModelosClient pendientes={MODELOS_DEMO} historial={[]} demo={true} />
         </section>
 
         {/* DOCUMENTOS RECIENTES */}

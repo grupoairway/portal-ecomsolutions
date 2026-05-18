@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { decodeSession } from '@/lib/session';
-import { buscarClientePorEmail } from '@/lib/notion';
+import { buscarClientePorEmail, getModelosPendientesCount } from '@/lib/notion';
 import DashboardNav from '@/components/DashboardNav';
 import styles from './dashboard.module.css';
 
@@ -22,10 +22,16 @@ export default async function DashboardLayout({
   if (!session) redirect('/');
 
   // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
-  let nombreMostrar = session.nombre
+  const [clienteNotion, modelosPendientes] = await Promise.all([
+    (!session.nombre || session.nombre === 'Cliente')
+      ? buscarClientePorEmail(session.email).catch(() => null)
+      : Promise.resolve(null),
+    getModelosPendientesCount(session.clienteId).catch(() => 0),
+  ]);
+
+  let nombreMostrar = session.nombre;
   if (!nombreMostrar || nombreMostrar === 'Cliente') {
-    const clienteNotion = await buscarClientePorEmail(session.email).catch(() => null)
-    if (clienteNotion?.nombre) nombreMostrar = clienteNotion.nombre
+    if (clienteNotion?.nombre) nombreMostrar = clienteNotion.nombre;
   }
 
   return (
@@ -58,7 +64,7 @@ export default async function DashboardLayout({
 
         <nav className={styles.nav}>
           <div className={styles.navInner}>
-            <DashboardNav />
+            <DashboardNav modelosPendientes={modelosPendientes} />
           </div>
         </nav>
       </header>
