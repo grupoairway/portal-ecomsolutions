@@ -248,6 +248,57 @@ export async function getModelosPendientesCount(clienteId: string): Promise<numb
   return response.results.length;
 }
 
+export interface VencimientoPendiente {
+  id: string;
+  nombre: string;
+  fecha: string | null;
+  estado: string;
+}
+
+export async function getVencimientosPendientesCliente(clienteId: string): Promise<VencimientoPendiente[]> {
+  const response = await notion.databases.query({
+    database_id: process.env.NOTION_VENCIMIENTOS_DB!,
+    filter: {
+      and: [
+        { property: 'Cliente', relation: { contains: clienteId } },
+        {
+          or: [
+            { property: 'Estado', select: { equals: 'Pendiente' } },
+            { property: 'Estado', select: { equals: 'Confirmado' } },
+          ],
+        },
+      ],
+    },
+    sorts: [{ property: 'Fecha límite', direction: 'ascending' }],
+  });
+
+  return response.results.map((page) => {
+    const p = page as unknown as {
+      id: string;
+      properties: {
+        'Título': { title: Array<{ plain_text: string }> };
+        'Fecha límite': { date: { start: string } | null };
+        'Estado': { select: { name: string } | null };
+      };
+    };
+    return {
+      id: p.id,
+      nombre: p.properties['Título']?.title?.[0]?.plain_text ?? 'Sin nombre',
+      fecha: p.properties['Fecha límite']?.date?.start ?? null,
+      estado: p.properties['Estado']?.select?.name ?? 'Pendiente',
+    };
+  });
+}
+
+export async function marcarSolicitudDocsEnviada(vencimientoId: string): Promise<void> {
+  await notion.pages.update({
+    page_id: vencimientoId,
+    properties: {
+      'Solicitud docs enviada': { checkbox: true },
+    },
+  });
+}
+
 export async function getDocumentosCliente(
   clienteId: string,
 ): Promise<DocumentoNotion[]> {

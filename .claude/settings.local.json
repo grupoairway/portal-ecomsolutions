@@ -14,7 +14,8 @@
       "Bash(npm install *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Avalon\\\\portal-ecomsolutions\" -Directory)",
       "Bash(Select-Object Name)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
