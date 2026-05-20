@@ -79,6 +79,9 @@ export default function LoginPage() {
       <footer className={styles.footer}>
         <a href="mailto:info@ecomsolutions.es">info@ecomsolutions.es</a>
         <a href="tel:+34661959962">+34 661 959 962</a>
+        <a href="https://ecomsolutions.es/politica-de-privacidad/">Política de privacidad</a>
+        <a href="https://ecomsolutions.es/aviso-legal/">Aviso legal</a>
+        <a href="https://ecomsolutions.es/politica-de-cookies/">Política de cookies</a>
       </footer>
     </main>
   );
