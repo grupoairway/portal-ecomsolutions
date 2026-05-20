@@ -1,15 +1,20 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import type { VencimientoPendiente } from '@/lib/notion';
 import styles from './SubirDocumentacion.module.css';
 
 const TIPOS_DOCUMENTO = [
   'Facturas',
   'Extracto bancario',
+  'Nóminas',
   'Certificado retenciones',
   'Contrato',
-  'Nóminas',
+  'Otros',
+] as const;
+
+const PERIODOS = [
+  'T1 2025', 'T2 2025', 'T3 2025', 'T4 2025', 'Anual 2025',
+  'T1 2026', 'T2 2026', 'T3 2026', 'T4 2026', 'Anual 2026',
   'Otros',
 ] as const;
 
@@ -27,28 +32,15 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatFecha(fecha: string | null): string {
-  if (!fecha) return '';
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
 function validarArchivo(file: File): string | null {
   if (file.size > MAX_SIZE) return `"${file.name}" supera el límite de 10MB`;
   if (!ALLOWED_TYPES.has(file.type)) return `"${file.name}" tiene un formato no permitido`;
   return null;
 }
 
-interface Props {
-  vencimientos: VencimientoPendiente[];
-}
-
-export default function SubirDocumentacion({ vencimientos }: Props) {
-  const [vencimientoId, setVencimientoId] = useState('');
+export default function SubirDocumentacion() {
   const [tipoDocumento, setTipoDocumento] = useState('');
+  const [periodo, setPeriodo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [archivos, setArchivos] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -90,17 +82,15 @@ export default function SubirDocumentacion({ vencimientos }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (!vencimientoId) { setError('Selecciona un vencimiento'); return; }
     if (!tipoDocumento) { setError('Selecciona el tipo de documento'); return; }
+    if (!periodo) { setError('Selecciona el período'); return; }
     if (archivos.length === 0) { setError('Añade al menos un archivo'); return; }
 
     setEnviando(true);
     try {
-      const vencimiento = vencimientos.find((v) => v.id === vencimientoId);
       const fd = new FormData();
-      fd.append('vencimientoId', vencimientoId);
-      fd.append('vencimientoNombre', vencimiento?.nombre ?? '');
       fd.append('tipoDocumento', tipoDocumento);
+      fd.append('periodo', periodo);
       fd.append('descripcion', descripcion);
       for (const archivo of archivos) {
         fd.append('archivos', archivo);
@@ -112,8 +102,8 @@ export default function SubirDocumentacion({ vencimientos }: Props) {
       if (!res.ok) throw new Error(data.error ?? 'Error al enviar');
 
       setExito(true);
-      setVencimientoId('');
       setTipoDocumento('');
+      setPeriodo('');
       setDescripcion('');
       setArchivos([]);
     } catch (err) {
@@ -141,27 +131,6 @@ export default function SubirDocumentacion({ vencimientos }: Props) {
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       <div className={styles.campo}>
-        <label className={styles.label}>Vencimiento fiscal *</label>
-        <select
-          className={styles.select}
-          value={vencimientoId}
-          onChange={(e) => setVencimientoId(e.target.value)}
-        >
-          <option value="">Selecciona un vencimiento...</option>
-          {vencimientos.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.nombre}
-              {v.fecha ? ` · ${formatFecha(v.fecha)}` : ''}
-              {v.estado !== 'Pendiente' ? ` (${v.estado})` : ''}
-            </option>
-          ))}
-        </select>
-        {vencimientos.length === 0 && (
-          <p className={styles.hint}>No tienes vencimientos pendientes en este momento.</p>
-        )}
-      </div>
-
-      <div className={styles.campo}>
         <label className={styles.label}>Tipo de documento *</label>
         <select
           className={styles.select}
@@ -171,6 +140,20 @@ export default function SubirDocumentacion({ vencimientos }: Props) {
           <option value="">Selecciona el tipo...</option>
           {TIPOS_DOCUMENTO.map((t) => (
             <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className={styles.campo}>
+        <label className={styles.label}>Período *</label>
+        <select
+          className={styles.select}
+          value={periodo}
+          onChange={(e) => setPeriodo(e.target.value)}
+        >
+          <option value="">Selecciona el período...</option>
+          {PERIODOS.map((p) => (
+            <option key={p} value={p}>{p}</option>
           ))}
         </select>
       </div>

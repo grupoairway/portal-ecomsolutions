@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decodeSession } from '@/lib/session';
 import { sendDocumentacionCliente } from '@/lib/mailer';
-import { marcarSolicitudDocsEnviada } from '@/lib/notion';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
@@ -29,13 +28,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error al procesar los archivos' }, { status: 400 });
   }
 
-  const vencimientoId = formData.get('vencimientoId') as string | null;
-  const vencimientoNombre = (formData.get('vencimientoNombre') as string | null) ?? '';
   const tipoDocumento = formData.get('tipoDocumento') as string | null;
+  const periodo = formData.get('periodo') as string | null;
   const descripcion = (formData.get('descripcion') as string | null) ?? '';
   const archivosEntries = formData.getAll('archivos') as File[];
 
-  if (!vencimientoId || !tipoDocumento || archivosEntries.length === 0) {
+  if (!tipoDocumento || !periodo || archivosEntries.length === 0) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
   }
 
@@ -65,17 +63,11 @@ export async function POST(request: NextRequest) {
   await sendDocumentacionCliente({
     clienteNombre: session.nombre || session.email,
     clienteEmail: session.email,
-    vencimientoNombre,
     tipoDocumento,
+    periodo,
     descripcion: descripcion || undefined,
     archivos,
   });
-
-  try {
-    await marcarSolicitudDocsEnviada(vencimientoId);
-  } catch (err) {
-    console.error('Error al actualizar Notion:', err);
-  }
 
   return NextResponse.json({ success: true });
 }

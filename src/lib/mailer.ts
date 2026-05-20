@@ -86,28 +86,28 @@ export async function sendConfirmacionGestor(params: ConfirmacionParams) {
 interface DocumentacionClienteParams {
   clienteNombre: string;
   clienteEmail: string;
-  vencimientoNombre: string;
   tipoDocumento: string;
+  periodo: string;
   descripcion?: string;
   archivos: Array<{ filename: string; content: Buffer; contentType: string }>;
 }
 
 export async function sendDocumentacionCliente(params: DocumentacionClienteParams) {
-  const { clienteNombre, clienteEmail, vencimientoNombre, tipoDocumento, descripcion, archivos } = params;
+  const { clienteNombre, clienteEmail, tipoDocumento, periodo, descripcion, archivos } = params;
   const transporter = createTransporter();
 
   const result = await transporter.sendMail({
     from: 'EcomSolutions <noreply@ecomsolutions.es>',
     to: 'grupoairway@gmail.com',
-    subject: `[Portal EcomSolutions] 📎 ${clienteNombre} ha subido documentación · ${vencimientoNombre}`,
+    subject: `[Portal EcomSolutions] 📎 ${clienteNombre} ha subido documentación · ${tipoDocumento} · ${periodo}`,
     html: `
       <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
         <h2 style="color:#0f172a;margin-bottom:20px;">📎 Nueva documentación recibida</h2>
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:140px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;">${clienteEmail}</td></tr>
-          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Vencimiento</td><td style="padding:8px 0;font-weight:600;">${vencimientoNombre}</td></tr>
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Tipo de doc.</td><td style="padding:8px 0;font-weight:600;">${tipoDocumento}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Período</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
           ${descripcion ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Descripción</td><td style="padding:8px 0;">${descripcion}</td></tr>` : ''}
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Archivos</td><td style="padding:8px 0;">${archivos.map(a => a.filename).join(', ')}</td></tr>
         </table>

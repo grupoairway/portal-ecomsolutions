@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import DocumentosGrid from './DocumentosGrid';
 import SubirDocumentacion from './SubirDocumentacion';
-import type { DocumentoNotion, VencimientoPendiente } from '@/lib/notion';
+import type { DocumentoNotion } from '@/lib/notion';
 import styles from './DocumentosTabs.module.css';
 
 interface Props {
   documentos: DocumentoNotion[];
-  vencimientos: VencimientoPendiente[];
 }
 
 type Tab = 'mis-documentos' | 'subir';
 
-export default function DocumentosTabs({ documentos, vencimientos }: Props) {
+export default function DocumentosTabs({ documentos }: Props) {
   const [tab, setTab] = useState<Tab>('mis-documentos');
 
   return (
@@ -39,7 +38,7 @@ export default function DocumentosTabs({ documentos, vencimientos }: Props) {
 
       <div className={styles.panelContent}>
         {tab === 'mis-documentos' && <DocumentosGrid documentos={documentos} />}
-        {tab === 'subir' && <SubirDocumentacion vencimientos={vencimientos} />}
+        {tab === 'subir' && <SubirDocumentacion />}
       </div>
     </div>
   );
