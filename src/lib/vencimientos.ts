@@ -10,12 +10,29 @@
 
 import { cache } from 'react';
 import { Client } from '@notionhq/client';
-import { getPerfilCliente } from './notion';
-import { mapear, type Vencimiento } from './vencimientos-tipos';
+import { getPerfilCliente, type PerfilCliente } from './notion';
+import {
+  mapear,
+  type ContextoCliente,
+  type Vencimiento,
+} from './vencimientos-tipos';
 
 export * from './vencimientos-tipos';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
+
+/**
+ * Lo que la ficha del cliente aporta al mapeo: quién paga (certificado
+ * digital) y si puede pedir la devolución del IVA fuera del cuarto trimestre
+ * (REDEME o periodicidad mensual).
+ */
+function contextoDe(perfil: PerfilCliente | null): ContextoCliente {
+  return {
+    clienteConCertificado: perfil?.certificadoDigital ?? false,
+    redeme: perfil?.redeme ?? false,
+    ivaMensual: perfil?.periodicidadIva === 'Mensual',
+  };
+}
 
 /**
  * Todos los vencimientos del cliente, del más próximo al más lejano.
@@ -30,7 +47,7 @@ export const getVencimientos = cache(async function getVencimientos(
   // El certificado digital decide quién paga, y vive en la ficha del cliente.
   // getPerfilCliente está cacheada, así que no añade una consulta por pantalla.
   const perfil = await getPerfilCliente(clienteId);
-  const contexto = { clienteConCertificado: perfil?.certificadoDigital ?? false };
+  const contexto = contextoDe(perfil);
 
   const resultados: unknown[] = [];
   let cursor: string | undefined;
@@ -67,7 +84,5 @@ export async function getVencimiento(
   }
 
   const perfil = await getPerfilCliente(clienteId);
-  return mapear(page, {
-    clienteConCertificado: perfil?.certificadoDigital ?? false,
-  });
+  return mapear(page, contextoDe(perfil));
 }

@@ -8,13 +8,21 @@
  *   2. Borrador        -> "Borrador enviado" + "Fecha publicación borrador" + "Borrador URL"
  *   3. Tu conformidad  -> "Conformidad fecha" + "Conformidad por" (plazo: "Plazo conformidad")
  *   4. Presentacion    -> "Fecha presentación real" + "Justificante AEAT" + "Nº referencia presentación"
- *   5. Cargo en cuenta -> "Fecha cargo"
+ *   5. Cargo en cuenta -> "Fecha cargo"   (o "Devolución", si sale a su favor)
  *
  * Este módulo es puro: no habla con Notion, así que puede importarse
  * también desde componentes de cliente. Las consultas están en vencimientos.ts.
  */
 
-import { fechaHoraLarga, fechaLarga, hoy, soloFecha, sumarDias, diasEntre } from './fechas';
+import {
+  diasEntre,
+  euros,
+  fechaHoraLarga,
+  fechaLarga,
+  hoy,
+  soloFecha,
+  sumarDias,
+} from './fechas';
 
 export type EstadoPaso = 'hecho' | 'ahora' | 'pendiente';
 
@@ -25,7 +33,9 @@ export type ClavePaso =
   /** Solo cuando paga el cliente: sin NRC no podemos presentar. */
   | 'pago'
   | 'presentacion'
-  | 'cargo';
+  | 'cargo'
+  /** Solo cuando Hacienda tiene que devolver dinero. */
+  | 'devolucion';
 
 export interface Paso {
   clave: ClavePaso;
@@ -87,6 +97,14 @@ export interface Vencimiento {
   confirmacionCliente: string | null;
   notasCliente: string | null;
 
+  /* --- Datos del cliente que cambian las opciones de cobro --- */
+  /** Inscrito en el registro de devolución mensual del IVA. */
+  redeme: boolean;
+  /** "Periodicidad IVA" = Mensual en su ficha. */
+  ivaMensual: boolean;
+  /** El modelo sale a favor del cliente: a devolver o a compensar. */
+  esNegativo: boolean;
+
   /** Los cinco pasos del seguimiento, ya resueltos. */
   pasos: Paso[];
   /** Qué pasos están completados. Sirve para agrupar por periodo. */
@@ -129,6 +147,236 @@ export const FORMA_PAGO_DOMICILIACION = 'Domiciliación';
 
 /** Valor de "Forma pago/cobro" en el que el pago se hace con carta de pago. */
 export const FORMA_PAGO_NRC = 'NRC';
+
+/** Resto de opciones del select "Forma pago/cobro" de Notion. */
+export const FORMA_PAGO_APLAZAMIENTO = 'Aplazamiento';
+export const FORMA_COBRO_DEVOLUCION = 'Devolución en cuenta';
+export const FORMA_COBRO_COMPENSAR = 'Compensar próximas';
+
+/** Formas de pago/cobro que necesitan una cuenta bancaria. */
+export const REQUIEREN_IBAN: string[] = [
+  FORMA_PAGO_DOMICILIACION,
+  FORMA_COBRO_DEVOLUCION,
+];
+
+/**
+ * Modelos que, cuando salen a devolver, solo admiten devolución en cuenta: no
+ * hay declaraciones futuras del mismo impuesto contra las que compensar.
+ */
+const MODELOS_SOLO_DEVOLUCION = new Set(['100', 'D-100', '200']);
+
+/** Resultados de Notion en los que el dinero va a favor del cliente. */
+const RESULTADOS_NEGATIVOS = new Set(['A devolver', 'A compensar']);
+
+/** El modelo sale a favor del cliente. */
+export function esResultadoNegativo(
+  resultado: string | null,
+  importe: number | null,
+): boolean {
+  if (resultado != null && RESULTADOS_NEGATIVOS.has(resultado)) return true;
+  return importe != null && importe < 0;
+}
+
+/** "4T 2026" -> 4. Devuelve null si el periodo no es un trimestre. */
+export function trimestreDePeriodo(periodo: string): number | null {
+  const m = periodo.match(/^([1-4])T\s*\d{4}$/i);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Lo que hace falta saber para decidir cómo se cobra o se paga un modelo. Es
+ * un subconjunto de Vencimiento para poder aplicar las reglas también durante
+ * el mapeo, antes de que el vencimiento esté completo.
+ */
+export type DatosCobro = Pick<
+  Vencimiento,
+  | 'modelo'
+  | 'periodo'
+  | 'resultado'
+  | 'importe'
+  | 'formaPago'
+  | 'redeme'
+  | 'ivaMensual'
+  | 'clienteConCertificado'
+>;
+
+export interface OpcionCobro {
+  /** Opción exacta del select "Forma pago/cobro" de Notion. */
+  valor: string;
+  etiqueta: string;
+  pideIban: boolean;
+  /** Advertencia que acompaña a la opción. */
+  aviso?: string;
+}
+
+const OPCION_DEVOLUCION: OpcionCobro = {
+  valor: FORMA_COBRO_DEVOLUCION,
+  etiqueta: 'Que me lo devuelvan a mi cuenta',
+  pideIban: true,
+  aviso: 'La cuenta debe estar a tu nombre.',
+};
+
+const OPCION_COMPENSAR: OpcionCobro = {
+  valor: FORMA_COBRO_COMPENSAR,
+  etiqueta: 'Compensarlo en las próximas declaraciones',
+  pideIban: false,
+};
+
+/** Texto de ayuda cuando el cliente sí puede elegir entre devolver y compensar. */
+export const AYUDA_DEVOLVER_O_COMPENSAR =
+  'La devolución puede tardar unos meses y Hacienda puede pedir justificantes. ' +
+  'Si compensas, lo descontarás de declaraciones futuras.';
+
+/**
+ * El IVA solo se puede pedir de vuelta en la última declaración del año, salvo
+ * que el cliente esté en REDEME o declare mes a mes: entonces puede pedirla
+ * siempre. En el resto de trimestres el saldo se arrastra, no se elige.
+ */
+function ivaPuedeElegir(v: DatosCobro): boolean {
+  if (v.redeme || v.ivaMensual) return true;
+  const trimestre = trimestreDePeriodo(v.periodo);
+  // Sin trimestre reconocible (periodos mensuales o anuales) no se fuerza la
+  // compensación: que elija, que es lo que menos puede perjudicarle.
+  return trimestre === null || trimestre === 4;
+}
+
+/**
+ * Las opciones que se le ofrecen al cliente. Lista vacía significa que no hay
+ * nada que elegir: o no procede, o la ley solo deja un camino.
+ *
+ * Esta función es la única fuente de verdad: la usan la pantalla de borradores
+ * para pintar los radios y el endpoint de conformidad para rechazar una forma
+ * de cobro que no toca.
+ */
+export function opcionesFormaPago(v: DatosCobro): OpcionCobro[] {
+  if (esResultadoNegativo(v.resultado, v.importe)) {
+    // "A compensar" es una decisión ya tomada: no se vuelve a preguntar.
+    if (v.resultado === 'A compensar') return [];
+    if (MODELOS_SOLO_DEVOLUCION.has(v.modelo)) return [OPCION_DEVOLUCION];
+    if (v.modelo === '303') {
+      return ivaPuedeElegir(v) ? [OPCION_DEVOLUCION, OPCION_COMPENSAR] : [];
+    }
+    // El 130 y los demás pagos a cuenta se arrastran solos dentro del año.
+    return [];
+  }
+
+  if (v.resultado === 'A pagar') {
+    return [
+      {
+        valor: FORMA_PAGO_DOMICILIACION,
+        etiqueta: 'Domiciliar el pago en mi cuenta',
+        pideIban: true,
+      },
+      { valor: FORMA_PAGO_NRC, etiqueta: 'Pagar yo desde mi banco', pideIban: false },
+      {
+        valor: FORMA_PAGO_APLAZAMIENTO,
+        etiqueta: 'Solicitar un aplazamiento',
+        pideIban: false,
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * La forma de cobro que se aplica sola, sin preguntar, al dar la conformidad.
+ * Es el caso del IVA negativo fuera del cuarto trimestre: solo cabe arrastrar
+ * el saldo, así que se deja escrito en Notion en vez de dejarlo en blanco.
+ */
+export function formaPagoAutomatica(v: DatosCobro): string | null {
+  if (!esResultadoNegativo(v.resultado, v.importe)) return null;
+  if (opcionesFormaPago(v).length > 0) return null;
+  if (v.resultado === 'A compensar' || v.modelo === '303') {
+    return FORMA_COBRO_COMPENSAR;
+  }
+  // El 130 se descuenta solo en los siguientes pagos a cuenta: no hay ninguna
+  // forma de cobro que anotar.
+  return null;
+}
+
+/** Formas de pago/cobro admisibles para este modelo y periodo. */
+export function formasPagoPermitidas(v: DatosCobro): string[] {
+  const opciones = opcionesFormaPago(v).map((o) => o.valor);
+  const automatica = formaPagoAutomatica(v);
+  if (automatica && !opciones.includes(automatica)) opciones.push(automatica);
+  return opciones;
+}
+
+export type DestinoNegativo = 'compensar' | 'devolver';
+
+/** Qué se va a hacer con un resultado a favor del cliente. */
+export function destinoNegativo(v: DatosCobro): DestinoNegativo | null {
+  if (!esResultadoNegativo(v.resultado, v.importe)) return null;
+  if (v.formaPago === FORMA_COBRO_DEVOLUCION) return 'devolver';
+  if (v.formaPago === FORMA_COBRO_COMPENSAR) return 'compensar';
+  if (v.resultado === 'A compensar') return 'compensar';
+  if (MODELOS_SOLO_DEVOLUCION.has(v.modelo)) return 'devolver';
+  // Todavía sin decidir: se enseña lo que dice el resultado del modelo.
+  if (opcionesFormaPago(v).length > 0) {
+    return v.resultado === 'A devolver' ? 'devolver' : 'compensar';
+  }
+  return 'compensar';
+}
+
+/**
+ * El importe tal y como se le enseña al cliente. Los resultados a su favor
+ * llevan siempre el signo menos, venga el número de Notion con signo o sin él.
+ */
+export function importeConSigno(v: DatosCobro): number | null {
+  if (v.importe == null) return null;
+  return esResultadoNegativo(v.resultado, v.importe)
+    ? -Math.abs(v.importe)
+    : v.importe;
+}
+
+/** "-450,25 € a compensar" para listados y calendario. */
+export function etiquetaImporte(v: DatosCobro): string | null {
+  const importe = importeConSigno(v);
+  if (importe == null) return null;
+  const destino = destinoNegativo(v);
+  if (!destino) return euros(importe);
+  return `${euros(importe)} a ${destino === 'devolver' ? 'devolver' : 'compensar'}`;
+}
+
+/**
+ * La explicación en cristiano de un resultado a favor del cliente: qué pasa
+ * ahora con ese dinero. Devuelve null si el modelo no sale a su favor.
+ */
+export function textoResultadoNegativo(v: DatosCobro): string | null {
+  if (!esResultadoNegativo(v.resultado, v.importe)) return null;
+
+  // El 130 no depende de lo que se elija, porque aquí no se elige nada.
+  if (v.modelo === '130' || v.modelo === '131') {
+    return trimestreDePeriodo(v.periodo) === 4
+      ? 'Resultado negativo: se tendrá en cuenta en tu declaración de la Renta.'
+      : 'Resultado negativo: se descontará en los próximos trimestres de este año.';
+  }
+
+  // Ya decidido: se cuenta lo que se va a hacer, no lo que se podría hacer.
+  if (v.formaPago === FORMA_COBRO_DEVOLUCION) {
+    return 'A devolver: Hacienda te lo ingresará en la cuenta que nos has indicado.';
+  }
+  if (v.formaPago === FORMA_COBRO_COMPENSAR) {
+    return v.modelo === '303'
+      ? 'A compensar. Se descontará de tus próximas declaraciones de IVA.'
+      : 'A compensar. Se descontará de tus próximas declaraciones.';
+  }
+
+  if (MODELOS_SOLO_DEVOLUCION.has(v.modelo)) {
+    return 'A devolver: Hacienda te lo ingresará en la cuenta que nos indiques.';
+  }
+
+  if (v.modelo === '303' && opcionesFormaPago(v).length === 0) {
+    return 'A compensar. Se descontará de tus próximas declaraciones de IVA.';
+  }
+
+  if (opcionesFormaPago(v).length > 0) {
+    return 'Sale a tu favor: puedes pedir la devolución o compensarlo más adelante.';
+  }
+
+  return 'Sale a tu favor.';
+}
 
 /**
  * Un NRC son 22 caracteres alfanuméricos que devuelve el banco al pagar.
@@ -222,6 +470,7 @@ export const ORDEN_PASOS: ClavePaso[] = [
   'pago',
   'presentacion',
   'cargo',
+  'devolucion',
 ];
 
 /**
@@ -244,6 +493,9 @@ function calcularProgreso(v: VencimientoBase): Record<ClavePaso, boolean> {
     pago: !!v.fechaPago,
     presentacion: presentado,
     cargo: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
+    // "Fecha cargo" guarda el movimiento en los dos sentidos: lo que sale de
+    // su cuenta y lo que Hacienda le ingresa.
+    devolucion: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
   };
 
   for (let i = ORDEN_PASOS.length - 2; i >= 0; i--) {
@@ -257,8 +509,12 @@ function pagaElCliente(v: VencimientoBase): boolean {
   return v.formaPago === FORMA_PAGO_NRC && !v.clienteConCertificado;
 }
 
-/** Si el recorrido incluye el paso de cargo en cuenta. */
+/**
+ * Si el recorrido incluye el paso de cargo en cuenta. Un modelo que sale a
+ * favor del cliente nunca lo tiene: de su cuenta no sale dinero.
+ */
 function tieneCargo(v: VencimientoBase, presentado: boolean): boolean {
+  if (esResultadoNegativo(v.resultado, v.importe)) return false;
   return !!v.fechaCargo || (v.resultado === 'A pagar' && !presentado);
 }
 
@@ -270,6 +526,12 @@ function construirPasos(v: VencimientoBase): Paso[] {
   const paganEllos = pagaElCliente(v);
   // Si paga el cliente no hay cargo en cuenta: el dinero sale cuando paga él.
   const hayCargo = !paganEllos && tieneCargo(v, presentado);
+  /*
+   * Con el saldo a favor compensado el recorrido termina en la presentación:
+   * no hay movimiento de dinero, el importe se arrastra a la siguiente
+   * declaración. Solo si pide la devolución hay un paso más que esperar.
+   */
+  const hayDevolucion = destinoNegativo(v) === 'devolver';
 
   function detalleConformidad(): string {
     if (conformidadDada) return `Dada el ${fechaHoraLarga(v.conformidadFecha)}`;
@@ -330,16 +592,24 @@ function construirPasos(v: VencimientoBase): Paso[] {
       titulo: 'Cargo en cuenta',
       detalle: v.fechaCargo ? fechaLarga(v.fechaCargo) : 'Pendiente',
     },
+    {
+      clave: 'devolucion',
+      titulo: 'Devolución',
+      detalle: v.fechaCargo
+        ? `Ingresada el ${fechaLarga(v.fechaCargo)}`
+        : 'Pendiente de Hacienda',
+    },
   ];
 
   /*
    * Pasos visibles: siempre los cuatro primeros. "Tu pago" solo si paga el
-   * cliente, y "Cargo en cuenta" solo si lo cobran de su cuenta. Nunca los
-   * dos: o paga él, o se lo cargan.
+   * cliente, "Cargo en cuenta" solo si lo cobran de su cuenta y "Devolución"
+   * solo si el dinero viene de vuelta. Los tres son excluyentes entre sí.
    */
   const visibles = definicion.filter((p) => {
     if (p.clave === 'pago') return paganEllos;
     if (p.clave === 'cargo') return hayCargo;
+    if (p.clave === 'devolucion') return hayDevolucion;
     return true;
   });
   const primeraPendiente = visibles.findIndex((p) => !hechos[p.clave]);
@@ -360,6 +630,13 @@ export interface ContextoCliente {
    * nosotros; sin él, el cliente paga con la carta de pago.
    */
   clienteConCertificado?: boolean;
+  /**
+   * "REDEME" en BD - Clientes: inscrito en el registro de devolución mensual
+   * del IVA, así que puede pedir la devolución en cualquier periodo.
+   */
+  redeme?: boolean;
+  /** "Periodicidad IVA" = Mensual: mismo efecto que el REDEME. */
+  ivaMensual?: boolean;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -419,6 +696,13 @@ export function mapear(page: any, contexto: ContextoCliente = {}): Vencimiento {
     iban: texto('IBAN'),
     confirmacionCliente: props['Confirmación cliente']?.select?.name ?? null,
     notasCliente: texto('Notas cliente'),
+
+    redeme: contexto.redeme ?? false,
+    ivaMensual: contexto.ivaMensual ?? false,
+    esNegativo: esResultadoNegativo(
+      props['Resultado modelo']?.select?.name ?? null,
+      props['Importe a ingresar']?.number ?? null,
+    ),
   };
 
   const presentado =

@@ -4,6 +4,7 @@ import { getPerfilCliente, type PerfilCliente } from '@/lib/notion';
 import {
   borradoresPendientes,
   etiquetaEstado,
+  etiquetaImporte,
   etiquetaModelo,
   proximosVencimientos,
   getVencimientos,
@@ -193,7 +194,7 @@ export default async function InicioPage() {
                     <small>
                       {limite ? `Hasta el ${fechaLarga(limite)}` : 'Sin fecha límite'}
                       {v.domiciliado ? ' · domiciliado' : ''}
-                      {v.importe != null ? ` · ${euros(v.importe)}` : ''}
+                      {etiquetaImporte(v) ? ` · ${etiquetaImporte(v)}` : ''}
                     </small>
                   </div>
                   <Chip tono={etiqueta.tono}>{etiqueta.texto}</Chip>

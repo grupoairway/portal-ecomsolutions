@@ -357,6 +357,10 @@ export interface PerfilCliente {
   certificadoDigital: boolean;
   fechaCaducidadCertificado: string | null;
   carpetaDrive: string | null;
+  /** Inscrito en el registro de devolución mensual del IVA. */
+  redeme: boolean;
+  /** "Trimestral" o "Mensual": decide si puede pedir el IVA fuera del 4T. */
+  periodicidadIva: string | null;
 }
 
 /**
@@ -387,6 +391,8 @@ export const getPerfilCliente = cache(async function getPerfilCliente(
       certificadoDigital: props['Certificado digital']?.checkbox ?? false,
       fechaCaducidadCertificado: props['Fecha caducidad cert digital']?.date?.start ?? null,
       carpetaDrive: props['Carpeta Drive']?.url ?? null,
+      redeme: props['REDEME']?.checkbox ?? false,
+      periodicidadIva: props['Periodicidad IVA']?.select?.name ?? null,
     };
   } catch {
     return null;

@@ -6,58 +6,21 @@ import { useRouter } from 'next/navigation';
 // Del módulo puro, no de vencimientos.ts: este componente es de cliente y no
 // debe arrastrar el SDK de Notion al navegador.
 import {
+  AYUDA_DEVOLVER_O_COMPENSAR,
   calcularPlazoConformidad,
   etiquetaModelo,
   fechaLimitePresentacion,
   FORMA_PAGO_DOMICILIACION,
+  destinoNegativo,
+  importeConSigno,
+  opcionesFormaPago,
+  textoResultadoNegativo,
   type Vencimiento,
 } from '@/lib/vencimientos-tipos';
 import { euros, fechaHoraLarga, fechaLarga } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
 import BloquePago from './BloquePago';
 import styles from './borradores.module.css';
-
-/**
- * Formas de pago que ofrecemos al cliente según el resultado del modelo.
- * Los valores tienen que coincidir exactamente con las opciones del select
- * "Forma pago/cobro" de Notion.
- */
-function opcionesPago(resultado: string | null): Array<{
-  valor: string;
-  etiqueta: string;
-  pideIban: boolean;
-}> {
-  if (resultado === 'A devolver') {
-    return [
-      {
-        valor: 'Devolución en cuenta',
-        etiqueta: 'Que me lo devuelvan a mi cuenta',
-        pideIban: true,
-      },
-      {
-        valor: 'Compensar próximas',
-        etiqueta: 'Compensarlo en las próximas declaraciones',
-        pideIban: false,
-      },
-    ];
-  }
-  if (resultado === 'A pagar') {
-    return [
-      {
-        valor: FORMA_PAGO_DOMICILIACION,
-        etiqueta: 'Domiciliar el pago en mi cuenta',
-        pideIban: true,
-      },
-      { valor: 'NRC', etiqueta: 'Pagar yo desde mi banco', pideIban: false },
-      {
-        valor: 'Aplazamiento',
-        etiqueta: 'Solicitar un aplazamiento',
-        pideIban: false,
-      },
-    ];
-  }
-  return [];
-}
 
 export default function BorradorCard({
   vencimiento,
@@ -68,7 +31,9 @@ export default function BorradorCard({
   ibanCliente?: string | null;
 }) {
   const router = useRouter();
-  const opciones = opcionesPago(vencimiento.resultado);
+  const opciones = opcionesFormaPago(vencimiento);
+  // Explicación de qué pasa con el dinero cuando el modelo sale a su favor.
+  const explicacionNegativo = textoResultadoNegativo(vencimiento);
 
   const [formaPago, setFormaPago] = useState(
     vencimiento.formaPago ?? opciones[0]?.valor ?? '',
@@ -79,7 +44,22 @@ export default function BorradorCard({
   const [error, setError] = useState<string | null>(null);
 
   const yaConforme = Boolean(vencimiento.conformidadFecha);
-  const pideIban = opciones.find((o) => o.valor === formaPago)?.pideIban ?? false;
+  const opcionElegida = opciones.find((o) => o.valor === formaPago);
+  const pideIban = opcionElegida?.pideIban ?? false;
+  const avisoOpcion = opcionElegida?.aviso;
+
+  /*
+   * Lo que se le recuerda después de dar la conformidad. "Forma de pago:
+   * Compensar próximas" no le dice nada a nadie: si el modelo sale a su
+   * favor, se le cuenta qué va a pasar con ese dinero.
+   */
+  const notaDecision = vencimiento.esNegativo
+    ? destinoNegativo(vencimiento) === 'devolver'
+      ? ' Pediremos a Hacienda que te lo ingrese en tu cuenta.'
+      : ' El saldo se compensará en tus próximas declaraciones.'
+    : vencimiento.formaPago
+      ? ` Forma de pago: ${vencimiento.formaPago}.`
+      : '';
 
   // Domiciliar adelanta la presentación al día 15, así que también adelanta el
   // plazo de conformidad. Se recalcula en vivo al marcar la opción.
@@ -149,11 +129,13 @@ export default function BorradorCard({
           {vencimiento.importe != null && (
             <>
               <div className="bignum" style={{ marginTop: 12 }}>
-                {euros(vencimiento.importe)}
+                {euros(importeConSigno(vencimiento))}
               </div>
               <div style={{ color: 'var(--muted)' }}>
-                {vencimiento.resultado ?? 'Resultado'}
-                {vencimiento.fechaCargo
+                {explicacionNegativo ?? vencimiento.resultado ?? 'Resultado'}
+                {/* El cargo solo se anuncia cuando el dinero sale de su
+                    cuenta; si el modelo sale a su favor, no hay cargo. */}
+                {!vencimiento.esNegativo && vencimiento.fechaCargo
                   ? ` · Cargo en tu cuenta el ${fechaLarga(vencimiento.fechaCargo)}`
                   : ''}
               </div>
@@ -172,7 +154,7 @@ export default function BorradorCard({
         <>
           <p className="note" style={{ marginTop: 16 }}>
             Diste tu conformidad el {fechaHoraLarga(vencimiento.conformidadFecha)}.
-            {vencimiento.formaPago ? ` Forma de pago: ${vencimiento.formaPago}.` : ''}{' '}
+            {notaDecision}{' '}
             Lo presentaremos
             {vencimiento.fechaLimitePresentacion
               ? ` antes del ${fechaLarga(vencimiento.fechaLimitePresentacion)}`
@@ -202,10 +184,21 @@ export default function BorradorCard({
           {opciones.length > 0 && (
             <fieldset className={styles.opciones}>
               <legend className={styles.legend}>
-                {vencimiento.resultado === 'A devolver'
-                  ? '¿Cómo quieres que te lo devuelvan?'
-                  : '¿Cómo quieres pagarlo?'}
+                {!vencimiento.esNegativo
+                  ? '¿Cómo quieres pagarlo?'
+                  : opciones.length === 1
+                    ? '¿Dónde quieres que te lo ingresen?'
+                    : '¿Qué prefieres hacer con el saldo a tu favor?'}
               </legend>
+
+              {/* Elegir entre devolución y compensación tiene consecuencias
+                  que el cliente no tiene por qué conocer: se le cuentan. */}
+              {vencimiento.esNegativo && opciones.length > 1 && (
+                <p className="note" style={{ margin: '0 0 10px' }}>
+                  {AYUDA_DEVOLVER_O_COMPENSAR}
+                </p>
+              )}
+
               {opciones.map((o) => (
                 <label key={o.valor} className={styles.opcion}>
                   <input
@@ -245,6 +238,9 @@ export default function BorradorCard({
                     inputMode="text"
                     autoComplete="off"
                   />
+                  {avisoOpcion && (
+                    <small style={{ color: 'var(--muted)' }}>{avisoOpcion}</small>
+                  )}
                   {!vencimiento.iban && ibanCliente && iban === ibanCliente && (
                     <small style={{ color: 'var(--muted)' }}>
                       Es la cuenta que tenemos en tu ficha. Cámbiala si quieres

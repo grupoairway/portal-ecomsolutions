@@ -1,28 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@notionhq/client';
 import { getSession } from '@/lib/session-server';
-import { getVencimiento } from '@/lib/vencimientos';
+import {
+  formaPagoAutomatica,
+  formasPagoPermitidas,
+  getVencimiento,
+  REQUIEREN_IBAN,
+} from '@/lib/vencimientos';
 import { sendConfirmacionGestor } from '@/lib/mailer';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
-
-/**
- * Opciones reales del select "Forma pago/cobro" en Notion. Si se manda
- * cualquier otra cosa, Notion la crearía como opción nueva y ensuciaría la
- * base, así que se rechaza.
- */
-const FORMAS_PAGO = [
-  'NRC',
-  'Domiciliación',
-  'Aplazamiento',
-  'Devolución en cuenta',
-  'Compensar próximas',
-] as const;
-
-type FormaPago = (typeof FORMAS_PAGO)[number];
-
-/** Las que necesitan cuenta bancaria. */
-const REQUIEREN_IBAN: FormaPago[] = ['Domiciliación', 'Devolución en cuenta'];
 
 interface Cuerpo {
   formaPago?: string;
@@ -68,19 +55,37 @@ export async function POST(
     );
   }
 
-  if (formaPago && !FORMAS_PAGO.includes(formaPago as FormaPago)) {
+  /*
+   * Las formas admisibles dependen del modelo y del periodo: un 303 negativo
+   * de un trimestre que no sea el cuarto solo se puede compensar, y una Renta
+   * a devolver solo se cobra en cuenta. La regla vive en vencimientos-tipos,
+   * la misma que pinta los radios en la pantalla, para que no puedan
+   * separarse.
+   */
+  const permitidas = formasPagoPermitidas(vencimiento);
+
+  if (formaPago && !permitidas.includes(formaPago)) {
     return NextResponse.json(
-      { error: 'Forma de pago no válida' },
+      {
+        error:
+          permitidas.length === 0
+            ? 'Este modelo no admite elegir forma de pago o cobro'
+            : `Ese cobro no es posible en el modelo ${vencimiento.modelo} de ${vencimiento.periodo}`,
+      },
       { status: 400 },
     );
   }
+
+  // Cuando la ley solo deja un camino no se pregunta: se anota. Es el caso
+  // del IVA negativo fuera del 4T, que se arrastra a la siguiente.
+  const formaFinal = formaPago || formaPagoAutomatica(vencimiento) || undefined;
 
   const ibanLimpio = iban?.replace(/\s+/g, '').toUpperCase() || undefined;
 
   // El IBAN solo se pide si hace falta y no hay uno ya guardado.
   if (
-    formaPago &&
-    REQUIEREN_IBAN.includes(formaPago as FormaPago) &&
+    formaFinal &&
+    REQUIEREN_IBAN.includes(formaFinal) &&
     !ibanLimpio &&
     !vencimiento.iban
   ) {
@@ -110,8 +115,8 @@ export async function POST(
     Estado: { select: { name: 'Confirmado' } },
   };
 
-  if (formaPago) {
-    propiedades['Forma pago/cobro'] = { select: { name: formaPago } };
+  if (formaFinal) {
+    propiedades['Forma pago/cobro'] = { select: { name: formaFinal } };
   }
   if (ibanLimpio) {
     propiedades['IBAN'] = { rich_text: [{ text: { content: ibanLimpio } }] };
@@ -139,8 +144,8 @@ export async function POST(
       clienteEmail: session.email,
       modeloNombre: `Modelo ${vencimiento.modelo} · ${vencimiento.modeloDescripcion}`,
       periodo: vencimiento.periodo,
-      accionLabel: formaPago
-        ? `Conformidad dada · ${formaPago}`
+      accionLabel: formaFinal
+        ? `Conformidad dada · ${formaFinal}`
         : 'Conformidad dada',
       iban: ibanLimpio,
       motivo: comentario?.trim() || undefined,

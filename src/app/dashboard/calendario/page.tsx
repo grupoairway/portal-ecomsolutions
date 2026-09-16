@@ -1,6 +1,7 @@
 import { requireSession } from '@/lib/session-server';
 import {
   etiquetaEstado,
+  etiquetaImporte,
   getVencimientos,
   type Vencimiento,
 } from '@/lib/vencimientos';
@@ -20,7 +21,8 @@ function resultado(v: Vencimiento): string {
   if (v.importe == null) {
     return v.resultado && v.resultado !== 'A pagar' ? v.resultado : '—';
   }
-  if (v.resultado === 'A devolver') return `A devolver ${euros(v.importe)}`;
+  // Lo que sale a su favor va con signo y con su destino: "-450,25 € a compensar".
+  if (v.esNegativo) return etiquetaImporte(v) ?? euros(v.importe);
   if (v.resultado === 'Cero' || v.importe === 0) return 'Sin importe';
   return euros(v.importe);
 }
