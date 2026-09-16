@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { MetricasInforme } from '@/lib/informe-tipos';
 import type { FilaBalance } from '@/lib/balance-tipos';
+import { euros } from '@/lib/fechas';
 
 interface Props {
   metricas: MetricasInforme;
@@ -31,7 +32,7 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
       const anchoUtil = ancho - margen * 2;
 
       const formatVal = (n: number) =>
-        new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2 }).format(n) + ' €';
+        euros(n, { signoAscii: true });
       const formatVar = (v: number) =>
         v > 0 ? `+${v.toFixed(1)}%` : v < 0 ? `${v.toFixed(1)}%` : '-';
 

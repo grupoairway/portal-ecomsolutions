@@ -224,15 +224,54 @@ const MODELOS_RETENCIONES = new Set(['111', '115', '123', '180', '190']);
 /** Formas societarias: Hacienda les admite la mitad de cuotas. */
 const TIPOS_SOCIEDAD = new Set(['SL', 'SLU', 'Comunidad de Bienes']);
 
-/** Cuotas máximas de un aplazamiento: 12 para autónomos, 6 para sociedades. */
+/**
+ * Deuda acumulada a partir de la cual Hacienda exige garantía (aval o
+ * hipoteca). Por debajo, el aplazamiento se concede sin aportar nada.
+ */
+export const LIMITE_SIN_GARANTIA = 50000;
+
+/**
+ * Cuotas máximas de un aplazamiento sin garantía: 24 meses para las personas
+ * físicas y 12 para las jurídicas.
+ */
 export function maxCuotas(tipoCliente: string | null | undefined): number {
-  return TIPOS_SOCIEDAD.has((tipoCliente ?? '').trim()) ? 6 : 12;
+  return TIPOS_SOCIEDAD.has((tipoCliente ?? '').trim()) ? 12 : 24;
 }
 
 /** Un modelo de retenciones, que no se puede aplazar. */
 export function esRetencion(modelo: string): boolean {
   return MODELOS_RETENCIONES.has(modelo);
 }
+
+/**
+ * Por qué un modelo no admite aplazamiento, o null si sí lo admite. Devolver
+ * el motivo y no un booleano permite decírselo al cliente en sus términos.
+ */
+export function motivoNoAplazable(modelo: string): string | null {
+  if (esRetencion(modelo)) {
+    return `El modelo ${modelo} es de retenciones y no se puede aplazar`;
+  }
+  if (modelo === '202') {
+    return 'El modelo 202 es un pago fraccionado del Impuesto de Sociedades y no se puede aplazar';
+  }
+  return null;
+}
+
+/** Si el modelo admite que se pida pagarlo a plazos. */
+export function puedeAplazarse(modelo: string): boolean {
+  return motivoNoAplazable(modelo) === null;
+}
+
+/**
+ * El importe pasa del límite sin garantía, así que el aplazamiento deja de
+ * ser un trámite y hay que estudiarlo con el cliente.
+ */
+export function requiereGarantia(v: DatosCobro): boolean {
+  return v.importe != null && v.importe > LIMITE_SIN_GARANTIA;
+}
+
+export const AVISO_GARANTIA =
+  'Por encima de 50.000 € Hacienda exige garantía. Escríbenos y lo estudiamos contigo';
 
 export interface OpcionCobro {
   /** Opción exacta del select "Forma pago/cobro" de Notion. */
@@ -304,9 +343,9 @@ export function opcionesFormaPago(v: DatosCobro): OpcionCobro[] {
       { valor: FORMA_PAGO_NRC, etiqueta: 'Pagar yo desde mi banco', pideIban: false },
     ];
 
-    // Las retenciones no se aplazan: ese dinero no es suyo, se lo ha retenido
-    // a otros y Hacienda no admite fraccionar su ingreso.
-    if (!esRetencion(v.modelo)) {
+    // Ni las retenciones ni los pagos fraccionados de Sociedades se aplazan:
+    // Hacienda no admite fraccionar su ingreso.
+    if (puedeAplazarse(v.modelo)) {
       opciones.push({
         valor: FORMA_PAGO_APLAZAMIENTO,
         etiqueta: 'Solicitar un aplazamiento',
@@ -365,9 +404,11 @@ export function validarAplazamiento(
   datos: DatosAplazamiento,
   referencia: string = mesActual(),
 ): string | null {
-  if (esRetencion(v.modelo)) {
-    return `El modelo ${v.modelo} es de retenciones y no se puede aplazar`;
-  }
+  const noAplazable = motivoNoAplazable(v.modelo);
+  if (noAplazable) return noAplazable;
+
+  // Con garantía de por medio ya no es un formulario: hay que hablarlo.
+  if (requiereGarantia(v)) return AVISO_GARANTIA;
 
   const tope = maxCuotas(v.tipoCliente);
   const cuotas = datos.cuotas;

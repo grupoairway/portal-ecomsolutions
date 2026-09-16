@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 // debe arrastrar el SDK de Notion al navegador.
 import {
   avisoInformativo,
+  AVISO_GARANTIA,
   AYUDA_APLAZAMIENTO,
   AYUDA_DEVOLVER_O_COMPENSAR,
   calcularPlazoConformidad,
@@ -19,6 +20,7 @@ import {
   maxCuotas,
   mesesPrimeraCuota,
   opcionesFormaPago,
+  requiereGarantia,
   requiereRevision,
   sinImporteDestacado,
   TEXTO_REVISION,
@@ -70,6 +72,7 @@ export default function BorradorCard({
   const pideIban = opcionElegida?.pideIban ?? false;
   const avisoOpcion = opcionElegida?.aviso;
   const aplazando = formaPago === FORMA_PAGO_APLAZAMIENTO;
+  const necesitaGarantia = requiereGarantia(vencimiento);
 
   /*
    * El botón se apaga cuando falta algo obligatorio. La comprobación del
@@ -283,7 +286,22 @@ export default function BorradorCard({
                 </p>
               )}
 
-              {aplazando && (
+              {/* Por encima del límite sin garantía no hay formulario que
+                  valga: hace falta un aval y eso se habla con el gestor. */}
+              {aplazando && necesitaGarantia && (
+                <>
+                  <p className="note" style={{ marginTop: 10 }}>
+                    {AVISO_GARANTIA}.
+                  </p>
+                  <div className="actions" style={{ marginTop: 10 }}>
+                    <Link href="/dashboard/consultas" className="btn">
+                      Escribirnos
+                    </Link>
+                  </div>
+                </>
+              )}
+
+              {aplazando && !necesitaGarantia && (
                 <>
                   <p className="note" style={{ marginTop: 10 }}>
                     {AYUDA_APLAZAMIENTO}
@@ -301,8 +319,11 @@ export default function BorradorCard({
                         </option>
                       ))}
                     </select>
+                    {/* El límite va redondo, como cifra de referencia: no es
+                        un importe que haya que cuadrar con nada. */}
                     <small style={{ color: 'var(--muted)' }}>
-                      El máximo para tu tipo de actividad son {tope} cuotas.
+                      Máximo sin garantía para tu tipo de actividad: {tope}{' '}
+                      cuotas, si tu deuda total con Hacienda no supera 50.000 €.
                     </small>
                   </label>
 

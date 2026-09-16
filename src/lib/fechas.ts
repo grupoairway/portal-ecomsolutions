@@ -78,11 +78,33 @@ export function fechaHoraLarga(valor: string | null | undefined): string {
   return `${fechaLargaConAnio(valor)} a las ${hora}`;
 }
 
-/** Importe en euros, formato español. */
-export function euros(n: number | null | undefined): string {
+/**
+ * Formato de los importes del portal.
+ *
+ * `useGrouping: 'always'` es necesario: el español, por defecto, no separa los
+ * millares de los números de cuatro cifras, así que 1450,80 saldría sin punto
+ * y desalineado con el resto de la columna.
+ */
+const FORMATO_EUROS = new Intl.NumberFormat('es-ES', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+  useGrouping: 'always',
+});
+
+/** Signo menos tipográfico (U+2212), que se distingue de un guion. */
+const MENOS = '−';
+
+/**
+ * Importe en euros: "1.450,80 €", "−2.100,00 €".
+ *
+ * `signoAscii` deja el guion normal para el PDF: las fuentes estándar de
+ * jsPDF no tienen el signo menos tipográfico y lo pintarían roto.
+ */
+export function euros(
+  n: number | null | undefined,
+  opciones: { signoAscii?: boolean } = {},
+): string {
   if (n == null) return '';
-  return `${n.toLocaleString('es-ES', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} €`;
+  const texto = FORMATO_EUROS.format(n);
+  return `${opciones.signoAscii ? texto : texto.replace(/^-/, MENOS)} €`;
 }

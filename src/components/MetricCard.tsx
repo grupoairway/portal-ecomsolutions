@@ -1,3 +1,4 @@
+import { euros } from '@/lib/fechas';
 import styles from './MetricCard.module.css';
 
 interface MetricCardProps {
@@ -9,9 +10,7 @@ interface MetricCardProps {
 }
 
 function formatearValor(n: number, formato: 'euros' | 'numero'): string {
-  if (formato === 'euros') {
-    return new Intl.NumberFormat('es-ES').format(n) + ' €';
-  }
+  if (formato === 'euros') return euros(n);
   return n.toLocaleString('es-ES');
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { euros } from '@/lib/fechas';
 import {
   BarChart,
   Bar,
@@ -59,7 +60,7 @@ export default function GraficoBarras({ datos, titulo }: GraficoBarrasProps) {
           />
           <Tooltip
             formatter={(value: number) =>
-              new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value)
+              euros(value)
             }
             contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}
           />

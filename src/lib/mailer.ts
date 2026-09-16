@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { asuntoGestor } from './cliente-prueba'
+import { euros } from './fechas'
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -210,7 +211,7 @@ export async function sendPagoGestor(params: PagoParams) {
           <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;width:120px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
           <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Modelo</td><td style="padding:8px 0;font-weight:600;">${modeloNombre}</td></tr>
           <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Período</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
-          ${importe != null ? `<tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Importe</td><td style="padding:8px 0;font-weight:600;">${importe.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td></tr>` : ''}
+          ${importe != null ? `<tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Importe</td><td style="padding:8px 0;font-weight:600;">${euros(importe)}</td></tr>` : ''}
           <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">NRC</td><td style="padding:8px 0;font-weight:600;font-family:monospace;">${nrc}</td></tr>
         </table>
       </div>
