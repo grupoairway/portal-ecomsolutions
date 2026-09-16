@@ -82,21 +82,21 @@ const CONSULTAS_DEMO = [
 ];
 
 const DATOS_BARRAS = [
-  { periodo: 'Ene', ingresos: 36200, gastos: 28100 },
-  { periodo: 'Feb', ingresos: 38500, gastos: 29400 },
-  { periodo: 'Mar', ingresos: 41000, gastos: 31200 },
-  { periodo: 'Abr', ingresos: 44300, gastos: 33800 },
-  { periodo: 'May', ingresos: 46800, gastos: 35600 },
-  { periodo: 'Jun', ingresos: 48500, gastos: 39580 },
+  { etiqueta: 'ene', ingresos: 36200, gastos: 28100 },
+  { etiqueta: 'feb', ingresos: 38500, gastos: 29400 },
+  { etiqueta: 'mar', ingresos: 41000, gastos: 31200 },
+  { etiqueta: 'abr', ingresos: 44300, gastos: 33800 },
+  { etiqueta: 'may', ingresos: 46800, gastos: 35600 },
+  { etiqueta: 'jun', ingresos: 48500, gastos: 39580 },
 ];
 
 const DATOS_LINEAS = [
-  { periodo: 'Ene', resultado: 8100 },
-  { periodo: 'Feb', resultado: 9100 },
-  { periodo: 'Mar', resultado: 9800 },
-  { periodo: 'Abr', resultado: 10500 },
-  { periodo: 'May', resultado: 11200 },
-  { periodo: 'Jun', resultado: 8920 },
+  { etiqueta: 'ene', esteAnio: 8100, anioAnterior: 6400 },
+  { etiqueta: 'feb', esteAnio: 9100, anioAnterior: 7100 },
+  { etiqueta: 'mar', esteAnio: 9800, anioAnterior: 7900 },
+  { etiqueta: 'abr', esteAnio: 10500, anioAnterior: 8600 },
+  { etiqueta: 'may', esteAnio: 11200, anioAnterior: 9000 },
+  { etiqueta: 'jun', esteAnio: 8920, anioAnterior: 9400 },
 ];
 
 function periodoAMetricasInforme(p: typeof PERIODOS_DEMO[0]): MetricasInforme {
@@ -256,7 +256,7 @@ export default function DashboardDemoPage() {
           <h2 className={styles.sectionTitle}>Evolución</h2>
           <div className={styles.graficosGrid}>
             <GraficoBarras datos={DATOS_BARRAS} titulo="Ingresos y gastos por período" />
-            <GraficoLineas datos={DATOS_LINEAS} titulo="Resultado del ejercicio" />
+            <GraficoLineas datos={DATOS_LINEAS} titulo="Resultado del ejercicio" nombres={{ esteAnio: '2026', anioAnterior: '2025' }} />
           </div>
         </section>
 
@@ -357,19 +357,13 @@ export default function DashboardDemoPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Informes detallados</h2>
           <div className={styles.accesosGrid}>
-            <Link href="/dashboard/balance" className={styles.accesoCard}>
-              <div className={styles.accesoIcon}>⚖️</div>
-              <div className={styles.accesoInfo}>
-                <div className={styles.accesoTitulo}>Balance</div>
-                <div className={styles.accesoDesc}>Activo, pasivo y patrimonio neto</div>
-              </div>
-              <span className={styles.accesoArrow}>→</span>
-            </Link>
-            <Link href="/dashboard/pyg" className={styles.accesoCard}>
+            <Link href="/dashboard/evolucion" className={styles.accesoCard}>
               <div className={styles.accesoIcon}>📈</div>
               <div className={styles.accesoInfo}>
-                <div className={styles.accesoTitulo}>Pérdidas y Ganancias</div>
-                <div className={styles.accesoDesc}>Ingresos, gastos y resultado</div>
+                <div className={styles.accesoTitulo}>Mi evolución</div>
+                <div className={styles.accesoDesc}>
+                  Ingresos, gastos, resultado y cómo evolucionan
+                </div>
               </div>
               <span className={styles.accesoArrow}>→</span>
             </Link>

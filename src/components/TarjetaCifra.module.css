@@ -1,0 +1,55 @@
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.etiqueta {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.valor {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+}
+
+.comparaciones {
+  margin-top: 6px;
+  display: grid;
+  gap: 3px;
+}
+
+.comparacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  margin: 0;
+}
+
+.cambio {
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.bueno {
+  color: var(--ok);
+}
+
+.malo {
+  color: var(--alert);
+}
+
+.referencia {
+  color: var(--muted);
+}

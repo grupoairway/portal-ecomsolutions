@@ -1,40 +1,47 @@
 'use client';
 
-import { euros } from '@/lib/fechas';
 import {
-  BarChart,
   Bar,
-  XAxis,
-  YAxis,
+  BarChart,
   CartesianGrid,
-  Tooltip,
   Legend,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
+import { euros } from '@/lib/fechas';
 import styles from './GraficoBarras.module.css';
 
-interface DatoPeriodo {
-  periodo: string;
-  ingresos: number;
-  gastos: number;
+export interface PuntoBarras {
+  /** Lo que se lee bajo la barra: "jul", "ene 26". */
+  etiqueta: string;
+  /** null = ese mes no tiene informe publicado. Queda como hueco. */
+  ingresos: number | null;
+  gastos: number | null;
 }
 
-interface GraficoBarrasProps {
-  datos: DatoPeriodo[];
+interface Props {
+  datos: PuntoBarras[];
   titulo?: string;
+  /** Explicación bajo la gráfica, por ejemplo por qué faltan meses. */
+  nota?: string;
 }
 
+/** Eje corto: "48K €". Los importes completos van en el tooltip. */
 function formatearEje(valor: number): string {
-  if (Math.abs(valor) >= 1_000_000) return `${(valor / 1_000_000).toFixed(1)}M€`;
-  if (Math.abs(valor) >= 1_000) return `${(valor / 1_000).toFixed(0)}K€`;
-  return `${valor}€`;
+  if (Math.abs(valor) >= 1_000_000) return `${(valor / 1_000_000).toFixed(1)}M €`;
+  if (Math.abs(valor) >= 1_000) return `${Math.round(valor / 1_000)}K €`;
+  return `${valor} €`;
 }
 
-export default function GraficoBarras({ datos, titulo }: GraficoBarrasProps) {
-  if (!datos || datos.length === 0) {
+export default function GraficoBarras({ datos, titulo, nota }: Props) {
+  const hayDatos = datos.some((d) => d.ingresos !== null || d.gastos !== null);
+
+  if (!hayDatos) {
     return (
       <div className={styles.empty}>
-        <p>No hay datos de evolución disponibles</p>
+        <p>Todavía no hay meses publicados para dibujar la evolución.</p>
       </div>
     );
   }
@@ -43,35 +50,40 @@ export default function GraficoBarras({ datos, titulo }: GraficoBarrasProps) {
     <div className={styles.wrapper}>
       {titulo && <h3 className={styles.titulo}>{titulo}</h3>}
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={datos} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+        {/* barGap deja 2px de superficie entre las dos barras del mes. */}
+        <BarChart data={datos} margin={{ top: 4, right: 8, left: 0, bottom: 4 }} barGap={2}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
           <XAxis
-            dataKey="periodo"
-            tick={{ fontSize: 12, fill: '#6b7280' }}
+            dataKey="etiqueta"
+            tick={{ fontSize: 12, fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             tickFormatter={formatearEje}
-            tick={{ fontSize: 12, fill: '#6b7280' }}
+            tick={{ fontSize: 12, fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}
-            width={60}
+            width={64}
           />
           <Tooltip
-            formatter={(value: number) =>
-              euros(value)
-            }
-            contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}
+            cursor={{ fill: 'var(--brand-soft)', opacity: 0.5 }}
+            formatter={(valor: number) => euros(valor)}
+            contentStyle={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 8,
+              color: 'var(--ink)',
+              fontSize: 13,
+            }}
+            labelStyle={{ color: 'var(--muted)' }}
           />
-          <Legend
-            wrapperStyle={{ fontSize: 13, paddingTop: 12 }}
-            iconType="square"
-          />
-          <Bar dataKey="ingresos" name="Ingresos" fill="#2563eb" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="gastos" name="Gastos" fill="#bfdbfe" radius={[4, 4, 0, 0]} />
+          <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} iconType="square" />
+          <Bar dataKey="ingresos" name="Ingresos" fill="var(--serie-1)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="gastos" name="Gastos" fill="var(--serie-2)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
+      {nota && <p className={styles.nota}>{nota}</p>}
     </div>
   );
 }

@@ -1,0 +1,58 @@
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.caja {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.caja b {
+  font-size: 19px;
+  color: var(--ink);
+}
+
+.graficas {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.aviso {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.parrafo {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.pie {
+  margin: 10px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.enlace {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.descargas {
+  margin-top: 14px;
+}
+
+@media (min-width: 1100px) {
+  .graficas {
+    grid-template-columns: 1fr 1fr;
+  }
+}

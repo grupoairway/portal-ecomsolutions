@@ -34,6 +34,7 @@ export default function DashboardNav({ borradoresPendientes = 0 }: Props) {
     { href: '/dashboard/documentos', label: 'Documentación', exact: false },
     { href: '/dashboard/notificaciones', label: 'Notificaciones', exact: false },
     { href: '/dashboard/consultas', label: 'Consultas', exact: false },
+    { href: '/dashboard/evolucion', label: 'Mi evolución', exact: false },
   ];
 
   const secundarias: NavItem[] = [

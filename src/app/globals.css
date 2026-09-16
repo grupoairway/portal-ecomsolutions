@@ -26,6 +26,12 @@
   --alert: #b3261e;
   --alert-soft: #fbe7e5;
 
+  /* Series de las gráficas. Cada modo tiene sus propios valores, comprobados
+     contra su superficie: banda de luminosidad, croma, separación suficiente
+     para daltonismo y contraste sobre el fondo. */
+  --serie-1: #185fa5;
+  --serie-2: #9a5b00;
+
   /* Medidas compartidas */
   --radius: 12px;
   --radius-sm: 8px;
@@ -63,6 +69,8 @@
     --warn-soft: #33260f;
     --alert: #ef7a72;
     --alert-soft: #3a1917;
+    --serie-1: #4a8ccf;
+    --serie-2: #c08430;
   }
 }
 
@@ -81,6 +89,8 @@
   --warn-soft: #33260f;
   --alert: #ef7a72;
   --alert-soft: #3a1917;
+  --serie-1: #4a8ccf;
+  --serie-2: #c08430;
 }
 
 *,

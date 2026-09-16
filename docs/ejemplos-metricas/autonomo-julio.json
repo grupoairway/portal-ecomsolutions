@@ -1,0 +1,122 @@
+{
+  "metricas": {
+    "version": 2,
+    "generadoEn": "2026-09-16T20:05:35.541Z",
+    "tipoCliente": "autonomo",
+    "basePyg": "ytd",
+    "moneda": "EUR",
+    "cliente": {
+      "codigoQuantum": "8",
+      "nombreExcel": "LEGAL GENSSLER SEBASTIAN EDUARDO"
+    },
+    "periodo": {
+      "etiqueta": "Julio 2026",
+      "tipo": "Mensual",
+      "ejercicio": 2026,
+      "ejercicioAnterior": 2025,
+      "mes": 7,
+      "origen": "APERTURA   hasta  JULIO 2026"
+    },
+    "balance": null,
+    "pygYtd": {
+      "ingresos": {
+        "actual": 28830,
+        "anioAnterior": null,
+        "varPct": null,
+        "found": true
+      },
+      "gastos": {
+        "actual": 22617.12,
+        "anioAnterior": null,
+        "varPct": null,
+        "found": true
+      },
+      "resultado": {
+        "actual": 6212.88,
+        "anioAnterior": null,
+        "varPct": null,
+        "found": true
+      }
+    },
+    "pygMes": {
+      "disponible": false,
+      "motivo": "sin-informe-anterior",
+      "baseAnterior": null
+    },
+    "avisos": [
+      {
+        "nivel": "aviso",
+        "codigo": "empresa-no-coincide",
+        "mensaje": "El Excel es de \"LEGAL GENSSLER SEBASTIAN EDUARDO\" (código Quantum 8) y el cliente seleccionado es \"CLIENTE AUTONOMO\". Comprueba que es correcto antes de continuar."
+      },
+      {
+        "nivel": "aviso",
+        "codigo": "sin-ejercicio-anterior",
+        "mensaje": "El export no trae columna del ejercicio anterior."
+      },
+      {
+        "nivel": "aviso",
+        "codigo": "sin-informe-anterior",
+        "mensaje": "No hay informe del período anterior, así que no se puede aislar la cifra del período. El portal mostrará solo el acumulado."
+      }
+    ]
+  },
+  "cuentasPyg": [
+    {
+      "epigrafe": "A01",
+      "epigrafeDesc": "TOTAL INGRESOS",
+      "cuenta": "70000000",
+      "desc": "INGRESOS DE EXPLOTACIÓN",
+      "actual": 28830,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "60200000",
+      "desc": "OTROS CONSUMOS DE EXPLOTACIÓN",
+      "actual": -20174.32,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "62200000",
+      "desc": "REPARACIONES Y CONSERVACIÓN",
+      "actual": -145.7,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "62300000",
+      "desc": "SERVICIOS DE PROFESIONALES INDEPENDIENTES",
+      "actual": -350,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "62840000",
+      "desc": "GASTOS POR SUMINISTRO DE TELEFONÍA E INTERNET",
+      "actual": -183.32,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "62900000",
+      "desc": "OTROS SERVICIOS",
+      "actual": -867.92,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A02",
+      "epigrafeDesc": "TOTAL GASTOS",
+      "cuenta": "64200000",
+      "desc": "SEGURIDAD SOCIAL A CARGO EMPRESA",
+      "actual": -895.86,
+      "anioAnterior": 0
+    }
+  ]
+}
