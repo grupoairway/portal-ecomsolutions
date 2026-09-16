@@ -294,3 +294,48 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* Rejilla de meses de la documentación mensual */
+.months {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.month {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.month b {
+  display: block;
+  font-size: 15px;
+}
+
+/* Casillas de la confirmación del cierre mensual */
+.checks {
+  display: grid;
+  gap: 10px;
+}
+
+.checks label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.checks input {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  accent-color: var(--brand);
+}

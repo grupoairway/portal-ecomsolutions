@@ -9,6 +9,12 @@ import {
   getVencimientos,
 } from '@/lib/vencimientos';
 import { periodoActivo, seguimientoPeriodo } from '@/lib/periodos';
+import {
+  getCierresCliente,
+  mesEnFrase,
+  mesesPendientes,
+  plazoCierre,
+} from '@/lib/cierres';
 import { euros, fechaLarga, hoy } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
 import Chip from '@/components/Chip';
@@ -41,9 +47,10 @@ function lineaPerfil(perfil: PerfilCliente | null): string {
 export default async function InicioPage() {
   const session = await requireSession();
 
-  const [perfil, vencimientos] = await Promise.all([
+  const [perfil, vencimientos, cierres] = await Promise.all([
     getPerfilCliente(session.clienteId),
     getVencimientos(session.clienteId).catch(() => []),
+    getCierresCliente(session.clienteId).catch(() => []),
   ]);
 
   const nombre =
@@ -57,10 +64,18 @@ export default async function InicioPage() {
   const pagosPendientes = vencimientos.filter(
     (v) => v.pagaElCliente && !v.pagado && !v.presentado && !!v.conformidadFecha,
   );
-  const hayTareas = pendientes.length > 0 || pagosPendientes.length > 0;
+  // Meses cerrados que el cliente aún no ha confirmado, del más antiguo al
+  // más reciente: cada uno es una tarea suya con su propio plazo.
+  const mesesSinConfirmar = mesesPendientes(cierres);
+  const hayTareas =
+    pendientes.length > 0 ||
+    pagosPendientes.length > 0 ||
+    mesesSinConfirmar.length > 0;
   const proximos = proximosVencimientos(vencimientos, 5);
   const periodo = periodoActivo(vencimientos);
-  const seguimiento = periodo ? seguimientoPeriodo(vencimientos, periodo) : null;
+  const seguimiento = periodo
+    ? seguimientoPeriodo(vencimientos, periodo, cierres)
+    : null;
   const quantumUrl = process.env.NEXT_PUBLIC_QUANTUM_URL ?? null;
   const h = hoy();
 
@@ -106,6 +121,29 @@ export default async function InicioPage() {
                 </div>
                 <Link href={`/dashboard/borradores#v-${v.id}`} className="btn">
                   Revisar borrador
+                </Link>
+              </div>
+            );
+          })}
+
+          {mesesSinConfirmar.map((mes) => {
+            const plazo = plazoCierre(mes);
+            const vencido = plazo < h;
+            return (
+              <div className="row" key={`cierre-${mes}`}>
+                <div>
+                  Subir y confirmar la documentación de {mesEnFrase(mes)}
+                  <small>
+                    <span style={vencido ? { color: 'var(--alert)' } : undefined}>
+                      {vencido
+                        ? `El plazo venció el ${fechaLarga(plazo)}`
+                        : `Plazo: ${fechaLarga(plazo)}`}
+                    </span>
+                    {' · Se sube en Quantum y se confirma aquí'}
+                  </small>
+                </div>
+                <Link href="/dashboard/documentos" className="btn btn-ghost">
+                  Confirmar documentación
                 </Link>
               </div>
             );

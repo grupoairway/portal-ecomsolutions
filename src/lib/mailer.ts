@@ -208,3 +208,57 @@ export async function sendPagoGestor(params: PagoParams) {
   console.log('Aviso de pago enviado. MessageId:', result.messageId)
   return result
 }
+
+interface CierreParams {
+  clienteNombre: string;
+  clienteEmail: string;
+  /** "Agosto 2026". */
+  periodo: string;
+  tipo: 'Confirmado' | 'Sin movimientos';
+  observaciones?: string | null;
+  /** true si el cliente se ha puesto al día fuera de plazo. */
+  fueraDePlazo?: boolean;
+}
+
+/**
+ * Aviso al gestor de que el cliente ha cerrado la documentación de un mes: ya
+ * se puede contabilizar. "Sin movimientos" también hay que saberlo, porque si
+ * no el mes se quedaría esperando papeles que no van a llegar.
+ */
+export async function sendCierreGestor(params: CierreParams) {
+  const { clienteNombre, clienteEmail, periodo, tipo, observaciones, fueraDePlazo } = params
+  const transporter = createTransporter()
+
+  const sinMovimientos = tipo === 'Sin movimientos'
+  const titulo = sinMovimientos
+    ? 'Mes sin movimientos'
+    : 'Documentación del mes confirmada'
+
+  const result = await transporter.sendMail({
+    from: 'EcomSolutions <noreply@ecomsolutions.es>',
+    to: 'info@ecomsolutions.es',
+    replyTo: clienteEmail,
+    subject: asuntoGestor(
+      `[Portal EcomSolutions] ${sinMovimientos ? '⭕' : '📗'} ${clienteNombre} · ${periodo} · ${tipo.toLowerCase()}`,
+      { nombre: clienteNombre, email: clienteEmail },
+    ),
+    html: `
+      <div style="font-family:Figtree,Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
+        <h2 style="color:#16212c;margin-bottom:20px;">${sinMovimientos ? '⭕' : '📗'} ${titulo}</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;width:140px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Correo</td><td style="padding:8px 0;">${clienteEmail}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Mes</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Confirmación</td><td style="padding:8px 0;font-weight:600;">${tipo}${fueraDePlazo ? ' (fuera de plazo)' : ''}</td></tr>
+          ${observaciones ? `<tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;vertical-align:top;">Observaciones</td><td style="padding:8px 0;">${observaciones}</td></tr>` : ''}
+        </table>
+        <p style="color:#5e6e7e;font-size:13px;margin-top:20px;">${sinMovimientos
+          ? 'El cliente indica que este mes no ha tenido actividad.'
+          : 'El cliente confirma que ya está todo subido a Quantum.'}</p>
+      </div>
+    `,
+  })
+
+  console.log('Aviso de cierre mensual enviado. MessageId:', result.messageId)
+  return result
+}

@@ -11,6 +11,12 @@
 
 import { fechaHoraLarga, fechaLarga, soloFecha } from './fechas';
 import {
+  documentacionTrimestreCompleta,
+  mesEnFrase,
+  mesesPendientesTrimestre,
+  type Cierre,
+} from './cierres-tipos';
+import {
   ORDEN_PASOS,
   type ClavePaso,
   type Paso,
@@ -85,10 +91,16 @@ export function periodoActivo(vencimientos: Vencimiento[]): string | null {
 /**
  * Seguimiento conjunto de todos los modelos de un periodo. Un paso solo se da
  * por hecho si lo han completado todos.
+ *
+ * Con `cierres` (los cierres mensuales del cliente), el primer paso deja de
+ * mirar la casilla de cada modelo y pasa a mirar los tres meses del
+ * trimestre: la documentación está completa cuando el cliente ha confirmado
+ * los tres, o ha dicho que no tuvo movimientos, o ya los hemos recogido.
  */
 export function seguimientoPeriodo(
   vencimientos: Vencimiento[],
   periodo: string,
+  cierres?: Cierre[],
 ): SeguimientoPeriodo | null {
   const grupo = vencimientos.filter((v) => v.periodo === periodo);
   if (grupo.length === 0) return null;
@@ -100,6 +112,23 @@ export function seguimientoPeriodo(
   const hechos = {} as Record<ClavePaso, boolean>;
   for (const clave of ORDEN_PASOS) hechos[clave] = cuantos(clave) === total;
 
+  const todosPresentados = grupo.every((v) => v.presentado);
+
+  /*
+   * El cierre mensual manda sobre el paso de documentación, salvo en un
+   * trimestre ya presentado: ahí es historia y no tiene sentido reabrirlo
+   * porque falte una confirmación que ya no sirve de nada.
+   */
+  const docsTrimestre = cierres
+    ? documentacionTrimestreCompleta(cierres, periodo)
+    : null;
+  const sinConfirmar =
+    cierres && !todosPresentados ? mesesPendientesTrimestre(cierres, periodo) : [];
+
+  if (docsTrimestre !== null && !todosPresentados) {
+    hechos.documentacion = docsTrimestre;
+  }
+
   /*
    * "Tu pago" solo mira los modelos que paga el cliente. Si se contaran
    * todos, un 303 que pagamos nosotros dejaría el paso pendiente para
@@ -109,7 +138,6 @@ export function seguimientoPeriodo(
   hechos.pago =
     pagaElClienteEn.length === 0 || pagaElClienteEn.every((v) => v.pagado);
 
-  const todosPresentados = grupo.every((v) => v.presentado);
   // Si en el periodo hay algo que pague el cliente, el recorrido enseña "Tu
   // pago" y no "Cargo en cuenta": son excluyentes, igual que en cada modelo.
   const hayPagoDelCliente = pagaElClienteEn.length > 0;
@@ -169,6 +197,21 @@ export function seguimientoPeriodo(
     return limite ? `Antes del ${fechaLarga(limite)}` : 'Con la carta de pago';
   }
 
+  /**
+   * Con cierres mensuales se cuenta lo que le falta al cliente por confirmar,
+   * que es lo accionable; sin ellos se mantiene el recuento por modelos.
+   */
+  function detalleDocumentacion(): string {
+    if (hechos.documentacion) return 'Completa';
+    if (sinConfirmar.length === 1) {
+      return `Falta confirmar ${mesEnFrase(sinConfirmar[0])}`;
+    }
+    if (sinConfirmar.length > 1) {
+      return `Faltan ${sinConfirmar.length} meses por confirmar`;
+    }
+    return parcial('documentacion', 'Pendiente de completar');
+  }
+
   function detalleBorrador(): string {
     if (!hechos.borrador) return parcial('borrador', 'Los preparamos nosotros');
     const publicacion = masProxima(grupo.map((v) => v.fechaPublicacionBorrador));
@@ -180,9 +223,7 @@ export function seguimientoPeriodo(
     {
       clave: 'documentacion',
       titulo: 'Documentación',
-      detalle: hechos.documentacion
-        ? 'Completa'
-        : parcial('documentacion', 'Pendiente de completar'),
+      detalle: detalleDocumentacion(),
     },
     { clave: 'borrador', titulo: 'Borrador', detalle: detalleBorrador() },
     { clave: 'conformidad', titulo: 'Tu conformidad', detalle: detalleConformidad() },
