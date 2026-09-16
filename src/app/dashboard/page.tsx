@@ -1,35 +1,41 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/session-server';
-import { getPerfilCliente } from '@/lib/notion';
+import { getPerfilCliente, type PerfilCliente } from '@/lib/notion';
 import {
   borradoresPendientes,
   etiquetaEstado,
   etiquetaModelo,
   proximosVencimientos,
-  vencimientoDestacado,
   getVencimientos,
 } from '@/lib/vencimientos';
+import { periodoActivo, seguimientoPeriodo } from '@/lib/periodos';
 import { euros, fechaLarga, hoy } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
 import Chip from '@/components/Chip';
 
-/** "Autónomo Directa Simplificada · IRPF en directa simplificada · Plan Autónomo Pro" */
-function lineaPerfil(perfil: {
-  tipoCliente: string | null;
-  regimenIrpf: string | null;
-  plan: string | null;
-} | null): string {
+/**
+ * Subtítulo de la portada, como en la maqueta: tipo de cliente · régimen ·
+ * plan. Solo con lo que exista en BD - Clientes; los campos vacíos no dejan
+ * huecos ni separadores sueltos.
+ */
+function lineaPerfil(perfil: PerfilCliente | null): string {
   if (!perfil) return '';
-  const partes = [
-    perfil.tipoCliente,
+
+  const regimen =
     perfil.regimenIrpf && perfil.regimenIrpf !== 'No aplica'
-      ? `IRPF en ${perfil.regimenIrpf.toLowerCase()}`
-      : null,
-    // El plan se guarda con el precio ("Autónomo Pro 50€"); al cliente le basta
-    // el nombre.
+      ? `Estimación ${perfil.regimenIrpf.toLowerCase()}`
+      : perfil.regimenIva && perfil.regimenIva !== 'General'
+        ? `IVA ${perfil.regimenIva.toLowerCase()}`
+        : null;
+
+  return [
+    perfil.tipoCliente,
+    regimen,
+    // El plan se guarda con el precio ("Autónomo Pro 50€"); sobra aquí.
     perfil.plan ? `Plan ${perfil.plan.replace(/\s*\d+\s*€\s*$/, '')}` : null,
-  ].filter(Boolean);
-  return partes.join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 export default async function InicioPage() {
@@ -46,16 +52,15 @@ export default async function InicioPage() {
       : (perfil?.nombre ?? 'Cliente');
 
   const pendientes = borradoresPendientes(vencimientos);
-  const destacado = vencimientoDestacado(vencimientos);
   const proximos = proximosVencimientos(vencimientos, 5);
+  const periodo = periodoActivo(vencimientos);
+  const seguimiento = periodo ? seguimientoPeriodo(vencimientos, periodo) : null;
   const quantumUrl = process.env.NEXT_PUBLIC_QUANTUM_URL ?? null;
   const h = hoy();
 
   return (
     <>
-      <h1 style={{ fontSize: 28, lineHeight: 1.2, margin: '0 0 4px', fontWeight: 700 }}>
-        Hola, {nombre}
-      </h1>
+      <h1 className="page-title">Hola, {nombre}</h1>
       <p className="lead">{lineaPerfil(perfil)}</p>
 
       {/* NECESITAMOS DE TI */}
@@ -92,13 +97,18 @@ export default async function InicioPage() {
         </section>
       )}
 
-      {/* SEGUIMIENTO */}
-      {destacado && (
+      {/* SEGUIMIENTO DEL PERIODO */}
+      {seguimiento && (
         <section className="panel">
-          <h2 className="panel-title">
-            {etiquetaModelo(destacado)} · {destacado.periodo}
-          </h2>
-          <Seguimiento vencimiento={destacado} />
+          <h2 className="panel-title">{seguimiento.titulo}</h2>
+          <Seguimiento pasos={seguimiento.pasos} />
+          {seguimiento.vencimientos.length > 1 && (
+            <p style={{ marginTop: 10, color: 'var(--muted)', fontSize: 13 }}>
+              Incluye{' '}
+              {seguimiento.vencimientos.map((v) => v.modelo).join(', ')}. Cada
+              paso avanza cuando lo han completado todos.
+            </p>
+          )}
         </section>
       )}
 
@@ -113,14 +123,14 @@ export default async function InicioPage() {
           ) : (
             proximos.map((v) => {
               const etiqueta = etiquetaEstado(v);
+              const limite = v.fechaLimitePresentacion ?? v.fechaLimite;
               return (
                 <div className="row" key={v.id}>
                   <div>
                     {etiquetaModelo(v)} · {v.periodo}
                     <small>
-                      {v.fechaLimite
-                        ? `Hasta el ${fechaLarga(v.fechaLimite)}`
-                        : 'Sin fecha límite'}
+                      {limite ? `Hasta el ${fechaLarga(limite)}` : 'Sin fecha límite'}
+                      {v.domiciliado ? ' · domiciliado' : ''}
                       {v.importe != null ? ` · ${euros(v.importe)}` : ''}
                     </small>
                   </div>
@@ -135,8 +145,8 @@ export default async function InicioPage() {
         <section className="panel">
           <h2 className="panel-title">Tu negocio en Quantum</h2>
           <p style={{ margin: '0 0 14px', color: 'var(--muted)' }}>
-            Tus facturas, tus gastos y tus resultados se consultan en Quantum,
-            siempre actualizados. Aquí solo gestionamos lo que tiene plazo.
+            Facturación, gastos, tesorería y resultados se consultan en Quantum,
+            siempre actualizados.
           </p>
           <div className="actions">
             {quantumUrl ? (
@@ -149,10 +159,9 @@ export default async function InicioPage() {
                 Abrir Quantum
               </a>
             ) : (
-              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                Si no recuerdas tu acceso a Quantum, escríbenos desde Consultas y
-                te reenviamos la invitación.
-              </span>
+              <Link href="/dashboard/contabilidad" className="btn">
+                Ver Quantum
+              </Link>
             )}
           </div>
         </section>

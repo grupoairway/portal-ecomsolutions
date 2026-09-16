@@ -341,10 +341,21 @@ export async function getDocumentosCliente(
 
 export interface PerfilCliente {
   nombre: string;
+  email: string | null;
+  nif: string | null;
+  telefono: string | null;
   tipoCliente: string | null;
+  tipoRelacion: string | null;
   regimenIrpf: string | null;
   regimenIva: string | null;
   plan: string | null;
+  /** Cuota mensual en euros. */
+  cuotaMensual: number | null;
+  fechaAlta: string | null;
+  iban: string | null;
+  estado: string | null;
+  certificadoDigital: boolean;
+  fechaCaducidadCertificado: string | null;
   carpetaDrive: string | null;
 }
 
@@ -361,10 +372,20 @@ export const getPerfilCliente = cache(async function getPerfilCliente(
     const props = page.properties ?? {};
     return {
       nombre: props['Nombre']?.title?.[0]?.plain_text ?? '',
+      email: props['Email']?.rich_text?.[0]?.plain_text?.trim() || null,
+      nif: props['NIF/CIF']?.rich_text?.[0]?.plain_text?.trim() || null,
+      telefono: props['Teléfono']?.phone_number ?? null,
       tipoCliente: props['Tipo de cliente']?.select?.name ?? null,
+      tipoRelacion: props['Tipo de relación']?.select?.name ?? null,
       regimenIrpf: props['Régimen IRPF']?.select?.name ?? null,
       regimenIva: props['Régimen IVA']?.select?.name ?? null,
       plan: props['Plan contratado']?.select?.name ?? null,
+      cuotaMensual: props['MRR']?.number ?? null,
+      fechaAlta: props['Fecha alta']?.date?.start ?? null,
+      iban: props['IBAN']?.rich_text?.[0]?.plain_text?.trim() || null,
+      estado: props['Estado']?.select?.name ?? null,
+      certificadoDigital: props['Certificado digital']?.checkbox ?? false,
+      fechaCaducidadCertificado: props['Fecha caducidad cert digital']?.date?.start ?? null,
       carpetaDrive: props['Carpeta Drive']?.url ?? null,
     };
   } catch {

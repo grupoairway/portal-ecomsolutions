@@ -1,13 +1,12 @@
-import type { Vencimiento } from '@/lib/vencimientos-tipos';
+import type { Paso } from '@/lib/vencimientos-tipos';
 import styles from './Seguimiento.module.css';
 
 /**
- * Línea de pasos del vencimiento. El texto de cada paso lo decide
- * construirPasos() en lib/vencimientos.ts; aquí solo se pinta.
+ * Línea de pasos. Sirve igual para un vencimiento suelto (vencimiento.pasos)
+ * que para un periodo entero (seguimientoPeriodo(...).pasos); el texto de cada
+ * paso viene ya resuelto.
  */
-export default function Seguimiento({ vencimiento }: { vencimiento: Vencimiento }) {
-  const pasos = vencimiento.pasos;
-
+export default function Seguimiento({ pasos }: { pasos: Paso[] }) {
   return (
     <ol
       className={styles.track}

@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 // Del módulo puro, no de vencimientos.ts: este componente es de cliente y no
 // debe arrastrar el SDK de Notion al navegador.
-import { etiquetaModelo, type Vencimiento } from '@/lib/vencimientos-tipos';
+import {
+  calcularPlazoConformidad,
+  etiquetaModelo,
+  fechaLimitePresentacion,
+  FORMA_PAGO_DOMICILIACION,
+  type Vencimiento,
+} from '@/lib/vencimientos-tipos';
 import { euros, fechaHoraLarga, fechaLarga } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
 import styles from './borradores.module.css';
@@ -37,7 +43,7 @@ function opcionesPago(resultado: string | null): Array<{
   if (resultado === 'A pagar') {
     return [
       {
-        valor: 'Domiciliación',
+        valor: FORMA_PAGO_DOMICILIACION,
         etiqueta: 'Domiciliar el pago en mi cuenta',
         pideIban: true,
       },
@@ -52,20 +58,44 @@ function opcionesPago(resultado: string | null): Array<{
   return [];
 }
 
-export default function BorradorCard({ vencimiento }: { vencimiento: Vencimiento }) {
+export default function BorradorCard({
+  vencimiento,
+  ibanCliente,
+}: {
+  vencimiento: Vencimiento;
+  /** IBAN de la ficha del cliente, para no hacérselo teclear otra vez. */
+  ibanCliente?: string | null;
+}) {
   const router = useRouter();
   const opciones = opcionesPago(vencimiento.resultado);
 
   const [formaPago, setFormaPago] = useState(
     vencimiento.formaPago ?? opciones[0]?.valor ?? '',
   );
-  const [iban, setIban] = useState(vencimiento.iban ?? '');
+  const [iban, setIban] = useState(vencimiento.iban ?? ibanCliente ?? '');
   const [comentario, setComentario] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const yaConforme = Boolean(vencimiento.conformidadFecha);
   const pideIban = opciones.find((o) => o.valor === formaPago)?.pideIban ?? false;
+
+  // Domiciliar adelanta la presentación al día 15, así que también adelanta el
+  // plazo de conformidad. Se recalcula en vivo al marcar la opción.
+  const domiciliando = formaPago === FORMA_PAGO_DOMICILIACION;
+  const limiteSiDomicilia = fechaLimitePresentacion(
+    vencimiento.fechaLimite,
+    FORMA_PAGO_DOMICILIACION,
+  );
+  const plazoSiDomicilia = calcularPlazoConformidad(
+    vencimiento.fechaPublicacionBorrador,
+    vencimiento.fechaLimite,
+    FORMA_PAGO_DOMICILIACION,
+  );
+  const domiciliarAdelanta =
+    limiteSiDomicilia != null &&
+    vencimiento.fechaLimite != null &&
+    limiteSiDomicilia < vencimiento.fechaLimite.slice(0, 10);
 
   async function darConformidad() {
     setEnviando(true);
@@ -135,7 +165,7 @@ export default function BorradorCard({ vencimiento }: { vencimiento: Vencimiento
         </span>
       </div>
 
-      <Seguimiento vencimiento={vencimiento} />
+      <Seguimiento pasos={vencimiento.pasos} />
 
       {yaConforme ? (
         <>
@@ -143,9 +173,12 @@ export default function BorradorCard({ vencimiento }: { vencimiento: Vencimiento
             Diste tu conformidad el {fechaHoraLarga(vencimiento.conformidadFecha)}.
             {vencimiento.formaPago ? ` Forma de pago: ${vencimiento.formaPago}.` : ''}{' '}
             Lo presentaremos
-            {vencimiento.fechaLimite
-              ? ` antes del ${fechaLarga(vencimiento.fechaLimite)}`
+            {vencimiento.fechaLimitePresentacion
+              ? ` antes del ${fechaLarga(vencimiento.fechaLimitePresentacion)}`
               : ' dentro de plazo'}
+            {vencimiento.domiciliado && vencimiento.fechaLimite
+              ? `, y el cargo en tu cuenta será el ${fechaLarga(vencimiento.fechaLimite)}`
+              : ''}
             .
           </p>
           {vencimiento.borradorUrl && (
@@ -183,6 +216,21 @@ export default function BorradorCard({ vencimiento }: { vencimiento: Vencimiento
                 </label>
               ))}
 
+              {domiciliando && domiciliarAdelanta && (
+                <p className="note" style={{ marginTop: 10 }}>
+                  Al domiciliar el pago tenemos que presentar antes del{' '}
+                  {fechaLarga(limiteSiDomicilia)}, no del{' '}
+                  {fechaLarga(vencimiento.fechaLimite)}: Hacienda necesita
+                  margen para ordenar el cargo.
+                  {/* Solo se menciona el plazo si domiciliar lo adelanta de
+                      verdad; si el borrador se publicó pronto, no cambia. */}
+                  {plazoSiDomicilia && plazoSiDomicilia !== vencimiento.plazoConformidad
+                    ? ` Eso adelanta tu conformidad al ${fechaLarga(plazoSiDomicilia)}.`
+                    : ''}{' '}
+                  El dinero sale de tu cuenta el {fechaLarga(vencimiento.fechaLimite)}.
+                </p>
+              )}
+
               {pideIban && (
                 <label className={styles.campo}>
                   <span>Cuenta bancaria (IBAN)</span>
@@ -194,6 +242,12 @@ export default function BorradorCard({ vencimiento }: { vencimiento: Vencimiento
                     inputMode="text"
                     autoComplete="off"
                   />
+                  {!vencimiento.iban && ibanCliente && iban === ibanCliente && (
+                    <small style={{ color: 'var(--muted)' }}>
+                      Es la cuenta que tenemos en tu ficha. Cámbiala si quieres
+                      usar otra.
+                    </small>
+                  )}
                 </label>
               )}
             </fieldset>

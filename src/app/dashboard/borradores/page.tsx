@@ -1,4 +1,5 @@
 import { requireSession } from '@/lib/session-server';
+import { getPerfilCliente } from '@/lib/notion';
 import {
   borradoresPendientes,
   etiquetaModelo,
@@ -13,9 +14,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function BorradoresPage() {
   const session = await requireSession();
-  const vencimientos = await getVencimientos(session.clienteId).catch(
-    () => [] as Vencimiento[],
-  );
+  const [perfil, vencimientos] = await Promise.all([
+    getPerfilCliente(session.clienteId),
+    getVencimientos(session.clienteId).catch(() => [] as Vencimiento[]),
+  ]);
 
   const pendientes = borradoresPendientes(vencimientos);
   // Conformidad ya dada pero todavía sin presentar.
@@ -26,9 +28,7 @@ export default async function BorradoresPage() {
 
   return (
     <>
-      <h1 style={{ fontSize: 28, lineHeight: 1.2, margin: '0 0 4px', fontWeight: 700 }}>
-        Borradores y justificantes
-      </h1>
+      <h1 className="page-title">Borradores y justificantes</h1>
       <p className="lead">
         Nunca presentamos un impuesto sin tu conformidad. Revisa cada borrador y
         confírmalo o pregúntanos.
@@ -45,11 +45,11 @@ export default async function BorradoresPage() {
       )}
 
       {pendientes.map((v) => (
-        <BorradorCard key={v.id} vencimiento={v} />
+        <BorradorCard key={v.id} vencimiento={v} ibanCliente={perfil?.iban} />
       ))}
 
       {conformados.map((v) => (
-        <BorradorCard key={v.id} vencimiento={v} />
+        <BorradorCard key={v.id} vencimiento={v} ibanCliente={perfil?.iban} />
       ))}
 
       {/* JUSTIFICANTES */}

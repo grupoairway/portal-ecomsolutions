@@ -44,7 +44,6 @@ export default async function DashboardLayout({
 
         <DashboardNav
           borradoresPendientes={borradoresPendientes(vencimientos).length}
-          quantumUrl={process.env.NEXT_PUBLIC_QUANTUM_URL ?? null}
         />
 
         <div className={styles.sideFooter}>

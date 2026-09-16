@@ -41,6 +41,13 @@ export interface Vencimiento {
   modeloDescripcion: string;
   periodo: string;
   fechaLimite: string | null;
+  /**
+   * Fecha en la que hay que presentar de verdad. Coincide con fechaLimite
+   * salvo si el pago está domiciliado, que la adelanta al día 15.
+   */
+  fechaLimitePresentacion: string | null;
+  /** El pago está domiciliado, así que se presenta antes del día 15. */
+  domiciliado: boolean;
   estado: string;
 
   documentacionCompleta: boolean;
@@ -69,6 +76,8 @@ export interface Vencimiento {
 
   /** Los cinco pasos del seguimiento, ya resueltos. */
   pasos: Paso[];
+  /** Qué pasos están completados. Sirve para agrupar por periodo. */
+  progreso: Record<ClavePaso, boolean>;
   /** Hay borrador publicado y el cliente aún no ha dado conformidad. */
   esperaConformidad: boolean;
   /** Ya presentado (o domiciliado). */
@@ -95,20 +104,44 @@ const MODELOS: Record<string, string> = {
   '390': 'Resumen anual de IVA',
 };
 
+/** Valor de "Forma pago/cobro" que adelanta el plazo de presentación. */
+export const FORMA_PAGO_DOMICILIACION = 'Domiciliación';
+
+/**
+ * Fecha real en la que hay que presentar.
+ *
+ * Domiciliar el pago obliga a presentar antes del día 15, no del 20: la AEAT
+ * necesita margen para ordenar el cargo. Se aplica solo si adelanta el plazo,
+ * nunca para retrasarlo.
+ */
+export function fechaLimitePresentacion(
+  fechaLimite: string | null,
+  formaPago: string | null,
+): string | null {
+  const limite = soloFecha(fechaLimite);
+  if (!limite) return null;
+  if (formaPago !== FORMA_PAGO_DOMICILIACION) return limite;
+
+  const dia15 = `${limite.slice(0, 8)}15`;
+  return dia15 < limite ? dia15 : limite;
+}
+
 /**
  * Plazo de conformidad por defecto: tres días naturales desde que se publica
- * el borrador, pero nunca más tarde del día anterior a la fecha límite, para
- * que quede margen de presentar.
+ * el borrador, pero nunca más tarde del día anterior a la fecha en que hay que
+ * presentar, para que quede margen. Con domiciliación ese tope es el día 14,
+ * porque se presenta el 15.
  */
 export function calcularPlazoConformidad(
   fechaPublicacion: string | null,
   fechaLimite: string | null,
+  formaPago: string | null = null,
 ): string | null {
   const publicacion = soloFecha(fechaPublicacion);
   if (!publicacion) return null;
 
   const porDefecto = sumarDias(publicacion, 3);
-  const limite = soloFecha(fechaLimite);
+  const limite = fechaLimitePresentacion(fechaLimite, formaPago);
   if (!limite) return porDefecto;
 
   const tope = sumarDias(limite, -1);
@@ -134,47 +167,55 @@ function periodoDesdeTitulo(titulo: string): string {
 
 type VencimientoBase = Omit<
   Vencimiento,
-  'pasos' | 'esperaConformidad' | 'presentado' | 'diasParaLimite'
+  'pasos' | 'progreso' | 'esperaConformidad' | 'presentado' | 'diasParaLimite'
 >;
 
-function construirPasos(v: VencimientoBase): Paso[] {
+export const ORDEN_PASOS: ClavePaso[] = [
+  'documentacion',
+  'borrador',
+  'conformidad',
+  'presentacion',
+  'cargo',
+];
+
+/**
+ * Qué pasos están completados, ya con el arrastre hacia atrás aplicado.
+ *
+ * El recorrido es secuencial, así que un paso posterior completado implica los
+ * anteriores. Sin esto, un modelo del histórico (presentado antes de que
+ * existiera el portal, sin marcar la documentación ni la conformidad) sale con
+ * "Tu conformidad · Pendiente" meses después de haberse presentado.
+ */
+function calcularProgreso(v: VencimientoBase): Record<ClavePaso, boolean> {
   const h = hoy();
   const presentado =
     !!v.fechaPresentacion || v.estado === 'Presentado' || v.estado === 'Domiciliado';
-  const borradorPublicado =
-    v.borradorEnviado || !!v.borradorUrl || !!v.fechaPublicacionBorrador;
-  const conformidadDada = !!v.conformidadFecha;
 
-  const orden: ClavePaso[] = [
-    'documentacion',
-    'borrador',
-    'conformidad',
-    'presentacion',
-    'cargo',
-  ];
-
-  const constancia: Record<ClavePaso, boolean> = {
+  const progreso: Record<ClavePaso, boolean> = {
     documentacion: v.documentacionCompleta,
-    borrador: borradorPublicado,
-    conformidad: conformidadDada,
+    borrador: v.borradorEnviado || !!v.borradorUrl || !!v.fechaPublicacionBorrador,
+    conformidad: !!v.conformidadFecha,
     presentacion: presentado,
     cargo: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
   };
 
-  /*
-   * El recorrido es secuencial, así que un paso posterior completado implica
-   * los anteriores. Sin esto, un modelo del histórico (presentado antes de que
-   * existiera el portal, sin marcar la documentación ni la conformidad) sale
-   * con "Tu conformidad · Pendiente" meses después de haberse presentado.
-   */
-  const hechos = { ...constancia };
-  for (let i = orden.length - 2; i >= 0; i--) {
-    if (hechos[orden[i + 1]]) hechos[orden[i]] = true;
+  for (let i = ORDEN_PASOS.length - 2; i >= 0; i--) {
+    if (progreso[ORDEN_PASOS[i + 1]]) progreso[ORDEN_PASOS[i]] = true;
   }
+  return progreso;
+}
 
-  /* El cargo solo forma parte del recorrido si hay algo que pagar y sabemos
-   * cuándo; en el histórico no consta y no tiene sentido mostrarlo. */
-  const hayCargo = !!v.fechaCargo || (v.resultado === 'A pagar' && !presentado);
+/** Si el recorrido incluye el paso de cargo en cuenta. */
+function tieneCargo(v: VencimientoBase, presentado: boolean): boolean {
+  return !!v.fechaCargo || (v.resultado === 'A pagar' && !presentado);
+}
+
+function construirPasos(v: VencimientoBase): Paso[] {
+  const presentado =
+    !!v.fechaPresentacion || v.estado === 'Presentado' || v.estado === 'Domiciliado';
+  const conformidadDada = !!v.conformidadFecha;
+  const hechos = calcularProgreso(v);
+  const hayCargo = tieneCargo(v, presentado);
 
   function detalleConformidad(): string {
     if (conformidadDada) return `Dada el ${fechaHoraLarga(v.conformidadFecha)}`;
@@ -213,8 +254,8 @@ function construirPasos(v: VencimientoBase): Paso[] {
         ? v.fechaPresentacion
           ? `Presentado el ${fechaLarga(v.fechaPresentacion)}`
           : 'Presentado'
-        : v.fechaLimite
-          ? `Antes del ${fechaLarga(v.fechaLimite)}`
+        : v.fechaLimitePresentacion
+          ? `Antes del ${fechaLarga(v.fechaLimitePresentacion)}`
           : 'La hacemos nosotros',
     },
     {
@@ -251,6 +292,7 @@ export function mapear(page: any): Vencimiento {
   const fechaLimite = fecha('Fecha límite');
   const fechaPublicacionBorrador = fecha('Fecha publicación borrador');
   const plazoEnNotion = fecha('Plazo conformidad');
+  const formaPago: string | null = props['Forma pago/cobro']?.select?.name ?? null;
 
   const base: VencimientoBase = {
     id: page.id as string,
@@ -260,6 +302,8 @@ export function mapear(page: any): Vencimiento {
     // "Periodo" es rich_text y va sin tilde en Notion; el título es el respaldo.
     periodo: texto('Periodo') ?? periodoDesdeTitulo(titulo),
     fechaLimite,
+    fechaLimitePresentacion: fechaLimitePresentacion(fechaLimite, formaPago),
+    domiciliado: formaPago === FORMA_PAGO_DOMICILIACION,
     estado: props['Estado']?.select?.name ?? 'Pendiente',
 
     documentacionCompleta: props['Documentación completa']?.checkbox ?? false,
@@ -269,7 +313,7 @@ export function mapear(page: any): Vencimiento {
 
     plazoConformidad:
       soloFecha(plazoEnNotion) ??
-      calcularPlazoConformidad(fechaPublicacionBorrador, fechaLimite),
+      calcularPlazoConformidad(fechaPublicacionBorrador, fechaLimite, formaPago),
     plazoConformidadEstimado: !plazoEnNotion,
     conformidadFecha: fecha('Conformidad fecha'),
     conformidadPor: texto('Conformidad por'),
@@ -281,7 +325,7 @@ export function mapear(page: any): Vencimiento {
 
     resultado: props['Resultado modelo']?.select?.name ?? null,
     importe: props['Importe a ingresar']?.number ?? null,
-    formaPago: props['Forma pago/cobro']?.select?.name ?? null,
+    formaPago,
     iban: texto('IBAN'),
     confirmacionCliente: props['Confirmación cliente']?.select?.name ?? null,
     notasCliente: texto('Notas cliente'),
@@ -295,6 +339,7 @@ export function mapear(page: any): Vencimiento {
   return {
     ...base,
     pasos: construirPasos(base),
+    progreso: calcularProgreso(base),
     presentado,
     esperaConformidad:
       !presentado &&
