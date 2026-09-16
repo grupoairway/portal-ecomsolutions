@@ -52,6 +52,12 @@ export default async function InicioPage() {
       : (perfil?.nombre ?? 'Cliente');
 
   const pendientes = borradoresPendientes(vencimientos);
+  // Ya dio su conformidad y ahora le toca pagar con la carta de pago: sin el
+  // NRC no podemos presentar, así que es una tarea suya.
+  const pagosPendientes = vencimientos.filter(
+    (v) => v.pagaElCliente && !v.pagado && !v.presentado && !!v.conformidadFecha,
+  );
+  const hayTareas = pendientes.length > 0 || pagosPendientes.length > 0;
   const proximos = proximosVencimientos(vencimientos, 5);
   const periodo = periodoActivo(vencimientos);
   const seguimiento = periodo ? seguimientoPeriodo(vencimientos, periodo) : null;
@@ -64,9 +70,27 @@ export default async function InicioPage() {
       <p className="lead">{lineaPerfil(perfil)}</p>
 
       {/* NECESITAMOS DE TI */}
-      {pendientes.length > 0 ? (
+      {hayTareas ? (
         <section className="panel panel-todo">
           <h2 className="panel-title">Necesitamos de ti</h2>
+
+          {pagosPendientes.map((v) => (
+            <div className="row" key={`pago-${v.id}`}>
+              <div>
+                Pagar el modelo {v.modelo} con la carta de pago
+                <small>
+                  {v.fechaLimitePresentacion
+                    ? `Antes del ${fechaLarga(v.fechaLimitePresentacion)}`
+                    : 'Sin el NRC no podemos presentarlo'}
+                  {v.importe != null ? ` · ${euros(v.importe)}` : ''}
+                </small>
+              </div>
+              <Link href={`/dashboard/borradores#v-${v.id}`} className="btn">
+                Pagar
+              </Link>
+            </div>
+          ))}
+
           {pendientes.map((v) => {
             const fueraDePlazo =
               v.plazoConformidad != null && v.plazoConformidad < h;

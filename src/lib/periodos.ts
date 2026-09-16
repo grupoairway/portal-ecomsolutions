@@ -100,11 +100,22 @@ export function seguimientoPeriodo(
   const hechos = {} as Record<ClavePaso, boolean>;
   for (const clave of ORDEN_PASOS) hechos[clave] = cuantos(clave) === total;
 
+  /*
+   * "Tu pago" solo mira los modelos que paga el cliente. Si se contaran
+   * todos, un 303 que pagamos nosotros dejaría el paso pendiente para
+   * siempre, porque su "Fecha pago" la rellenamos más tarde.
+   */
+  const pagaElClienteEn = grupo.filter((v) => v.pagaElCliente);
+  hechos.pago =
+    pagaElClienteEn.length === 0 || pagaElClienteEn.every((v) => v.pagado);
+
   const todosPresentados = grupo.every((v) => v.presentado);
-  // El cargo solo entra en el recorrido si algún modelo del periodo lo tiene.
-  const hayCargo = grupo.some(
-    (v) => !!v.fechaCargo || (v.resultado === 'A pagar' && !v.presentado),
-  );
+  // Si en el periodo hay algo que pague el cliente, el recorrido enseña "Tu
+  // pago" y no "Cargo en cuenta": son excluyentes, igual que en cada modelo.
+  const hayPagoDelCliente = pagaElClienteEn.length > 0;
+  const hayCargo =
+    !hayPagoDelCliente &&
+    grupo.some((v) => !!v.fechaCargo || (v.resultado === 'A pagar' && !v.presentado));
 
   /** "2 de 4 modelos" cuando el periodo va a medias. */
   const parcial = (clave: ClavePaso, sinNinguno: string) => {
@@ -144,6 +155,20 @@ export function seguimientoPeriodo(
     return limite ? `Antes del ${fechaLarga(limite)}` : 'La hacemos nosotros';
   }
 
+  /** Solo cuenta lo que tiene que pagar el cliente, no lo que pagamos nosotros. */
+  function detallePago(): string {
+    const suyos = grupo.filter((v) => v.pagaElCliente);
+    if (suyos.length > 0 && suyos.every((v) => v.pagado)) {
+      return suyos.length === 1 && suyos[0].fechaPago
+        ? `Pagado el ${fechaLarga(suyos[0].fechaPago)}`
+        : 'Pagados';
+    }
+    const limite = masProxima(
+      suyos.filter((v) => !v.pagado).map((v) => v.fechaLimitePresentacion),
+    );
+    return limite ? `Antes del ${fechaLarga(limite)}` : 'Con la carta de pago';
+  }
+
   function detalleBorrador(): string {
     if (!hechos.borrador) return parcial('borrador', 'Los preparamos nosotros');
     const publicacion = masProxima(grupo.map((v) => v.fechaPublicacionBorrador));
@@ -161,6 +186,7 @@ export function seguimientoPeriodo(
     },
     { clave: 'borrador', titulo: 'Borrador', detalle: detalleBorrador() },
     { clave: 'conformidad', titulo: 'Tu conformidad', detalle: detalleConformidad() },
+    { clave: 'pago', titulo: 'Tu pago', detalle: detallePago() },
     { clave: 'presentacion', titulo: 'Presentación', detalle: detallePresentacion() },
     {
       clave: 'cargo',
@@ -172,7 +198,11 @@ export function seguimientoPeriodo(
     },
   ];
 
-  const visibles = hayCargo ? definicion : definicion.slice(0, 4);
+  const visibles = definicion.filter((p) => {
+    if (p.clave === 'pago') return hayPagoDelCliente;
+    if (p.clave === 'cargo') return hayCargo;
+    return true;
+  });
   const primeraPendiente = visibles.findIndex((p) => !hechos[p.clave]);
 
   return {

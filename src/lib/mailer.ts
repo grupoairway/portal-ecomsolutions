@@ -165,3 +165,46 @@ export async function sendInvitacionQuantum(params: InvitacionQuantumParams) {
   console.log('Invitación Quantum solicitada. MessageId:', result.messageId)
   return result
 }
+
+interface PagoParams {
+  clienteNombre: string;
+  clienteEmail: string;
+  modeloNombre: string;
+  periodo: string;
+  nrc: string;
+  importe: number | null;
+}
+
+/**
+ * Aviso al gestor de que el cliente ya ha pagado y nos ha dado el NRC. Sin él
+ * no se puede presentar el modelo, así que conviene que llegue rápido.
+ */
+export async function sendPagoGestor(params: PagoParams) {
+  const { clienteNombre, clienteEmail, modeloNombre, periodo, nrc, importe } = params
+  const transporter = createTransporter()
+
+  const result = await transporter.sendMail({
+    from: 'EcomSolutions <noreply@ecomsolutions.es>',
+    to: 'info@ecomsolutions.es',
+    replyTo: clienteEmail,
+    subject: asuntoGestor(
+      `[Portal EcomSolutions] 💶 ${clienteNombre} ha pagado ${modeloNombre} · ${periodo}`,
+      { nombre: clienteNombre, email: clienteEmail },
+    ),
+    html: `
+      <div style="font-family:Figtree,Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
+        <h2 style="color:#16212c;margin-bottom:20px;">💶 NRC recibido: ya se puede presentar</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;width:120px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Modelo</td><td style="padding:8px 0;font-weight:600;">${modeloNombre}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Período</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
+          ${importe != null ? `<tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Importe</td><td style="padding:8px 0;font-weight:600;">${importe.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €</td></tr>` : ''}
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">NRC</td><td style="padding:8px 0;font-weight:600;font-family:monospace;">${nrc}</td></tr>
+        </table>
+      </div>
+    `,
+  })
+
+  console.log('Aviso de pago enviado. MessageId:', result.messageId)
+  return result
+}

@@ -71,22 +71,35 @@ export default async function BorradoresPage() {
                   {v.referenciaPresentacion
                     ? ` · Nº ${v.referenciaPresentacion}`
                     : ''}
+                  {v.nrc ? ` · NRC ${v.nrc}` : ''}
                 </small>
               </div>
-              {v.justificanteUrl ? (
-                <a
-                  href={v.justificanteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost"
-                >
-                  Descargar
-                </a>
-              ) : (
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  Justificante en camino
-                </span>
-              )}
+              <div className="actions">
+                {v.justificanteUrl ? (
+                  <a
+                    href={v.justificanteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost"
+                  >
+                    Descargar
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    Justificante en camino
+                  </span>
+                )}
+                {v.justificantePagoUrl && (
+                  <a
+                    href={v.justificantePagoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost"
+                  >
+                    Justificante de pago
+                  </a>
+                )}
+              </div>
             </div>
           ))
         )}

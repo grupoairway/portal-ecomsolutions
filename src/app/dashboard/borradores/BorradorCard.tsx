@@ -14,6 +14,7 @@ import {
 } from '@/lib/vencimientos-tipos';
 import { euros, fechaHoraLarga, fechaLarga } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
+import BloquePago from './BloquePago';
 import styles from './borradores.module.css';
 
 /**
@@ -193,6 +194,8 @@ export default function BorradorCard({
               </a>
             </div>
           )}
+
+          <BloquePago vencimiento={vencimiento} />
         </>
       ) : (
         <>

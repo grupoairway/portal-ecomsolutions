@@ -22,6 +22,8 @@ export type ClavePaso =
   | 'documentacion'
   | 'borrador'
   | 'conformidad'
+  /** Solo cuando paga el cliente: sin NRC no podemos presentar. */
+  | 'pago'
   | 'presentacion'
   | 'cargo';
 
@@ -67,6 +69,17 @@ export interface Vencimiento {
   referenciaPresentacion: string | null;
   fechaCargo: string | null;
 
+  /* --- Pago con NRC --- */
+  /** Carta de pago para que el cliente pague en su banco. */
+  cartaPagoUrl: string | null;
+  /** Número de referencia completo que devuelve el banco al pagar. */
+  nrc: string | null;
+  /** Cuándo se pagó, con hora: es prueba ante el cliente. */
+  fechaPago: string | null;
+  justificantePagoUrl: string | null;
+  /** El cliente tiene certificado digital, así que pagamos nosotros. */
+  clienteConCertificado: boolean;
+
   resultado: string | null;
   importe: number | null;
   formaPago: string | null;
@@ -82,6 +95,13 @@ export interface Vencimiento {
   esperaConformidad: boolean;
   /** Ya presentado (o domiciliado). */
   presentado: boolean;
+  /**
+   * El pago lo tiene que hacer el cliente: forma de pago NRC y sin
+   * certificado digital. Con certificado pagamos nosotros por él.
+   */
+  pagaElCliente: boolean;
+  /** Ya consta el pago. */
+  pagado: boolean;
   /** Días naturales hasta la fecha límite. Negativo si ya pasó. */
   diasParaLimite: number | null;
 }
@@ -106,6 +126,19 @@ const MODELOS: Record<string, string> = {
 
 /** Valor de "Forma pago/cobro" que adelanta el plazo de presentación. */
 export const FORMA_PAGO_DOMICILIACION = 'Domiciliación';
+
+/** Valor de "Forma pago/cobro" en el que el pago se hace con carta de pago. */
+export const FORMA_PAGO_NRC = 'NRC';
+
+/**
+ * Un NRC son 22 caracteres alfanuméricos que devuelve el banco al pagar.
+ */
+export const PATRON_NRC = /^[0-9A-Z]{22}$/;
+
+/** Normaliza lo que teclea el cliente: sin espacios y en mayúsculas. */
+export function limpiarNrc(nrc: string): string {
+  return nrc.replace(/[\s-]/g, '').toUpperCase();
+}
 
 /**
  * Fecha real en la que hay que presentar.
@@ -167,13 +200,26 @@ function periodoDesdeTitulo(titulo: string): string {
 
 type VencimientoBase = Omit<
   Vencimiento,
-  'pasos' | 'progreso' | 'esperaConformidad' | 'presentado' | 'diasParaLimite'
+  | 'pasos'
+  | 'progreso'
+  | 'esperaConformidad'
+  | 'presentado'
+  | 'pagaElCliente'
+  | 'pagado'
+  | 'diasParaLimite'
 >;
 
+/**
+ * Orden real del recorrido. "pago" va entre la conformidad y la presentación
+ * porque sin NRC no se puede presentar; solo se muestra cuando paga el
+ * cliente, pero está siempre en el orden para que el arrastre hacia atrás
+ * funcione.
+ */
 export const ORDEN_PASOS: ClavePaso[] = [
   'documentacion',
   'borrador',
   'conformidad',
+  'pago',
   'presentacion',
   'cargo',
 ];
@@ -195,6 +241,7 @@ function calcularProgreso(v: VencimientoBase): Record<ClavePaso, boolean> {
     documentacion: v.documentacionCompleta,
     borrador: v.borradorEnviado || !!v.borradorUrl || !!v.fechaPublicacionBorrador,
     conformidad: !!v.conformidadFecha,
+    pago: !!v.fechaPago,
     presentacion: presentado,
     cargo: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
   };
@@ -203,6 +250,11 @@ function calcularProgreso(v: VencimientoBase): Record<ClavePaso, boolean> {
     if (progreso[ORDEN_PASOS[i + 1]]) progreso[ORDEN_PASOS[i]] = true;
   }
   return progreso;
+}
+
+/** Si el pago corre a cargo del cliente: NRC y sin certificado digital. */
+function pagaElCliente(v: VencimientoBase): boolean {
+  return v.formaPago === FORMA_PAGO_NRC && !v.clienteConCertificado;
 }
 
 /** Si el recorrido incluye el paso de cargo en cuenta. */
@@ -215,7 +267,9 @@ function construirPasos(v: VencimientoBase): Paso[] {
     !!v.fechaPresentacion || v.estado === 'Presentado' || v.estado === 'Domiciliado';
   const conformidadDada = !!v.conformidadFecha;
   const hechos = calcularProgreso(v);
-  const hayCargo = tieneCargo(v, presentado);
+  const paganEllos = pagaElCliente(v);
+  // Si paga el cliente no hay cargo en cuenta: el dinero sale cuando paga él.
+  const hayCargo = !paganEllos && tieneCargo(v, presentado);
 
   function detalleConformidad(): string {
     if (conformidadDada) return `Dada el ${fechaHoraLarga(v.conformidadFecha)}`;
@@ -248,6 +302,19 @@ function construirPasos(v: VencimientoBase): Paso[] {
       detalle: detalleConformidad(),
     },
     {
+      clave: 'pago',
+      titulo: 'Tu pago',
+      detalle: v.fechaPago
+        ? `Pagado el ${fechaLarga(v.fechaPago)}`
+        : // Dado por hecho porque ya se presentó, pero sin pago registrado:
+          // no se afirma una fecha de pago que no tenemos.
+          hechos.pago
+          ? 'Sin registro en el portal'
+          : v.fechaLimitePresentacion
+            ? `Antes del ${fechaLarga(v.fechaLimitePresentacion)}`
+            : 'Con la carta de pago',
+    },
+    {
       clave: 'presentacion',
       titulo: 'Presentación',
       detalle: presentado
@@ -265,7 +332,16 @@ function construirPasos(v: VencimientoBase): Paso[] {
     },
   ];
 
-  const visibles = hayCargo ? definicion : definicion.slice(0, 4);
+  /*
+   * Pasos visibles: siempre los cuatro primeros. "Tu pago" solo si paga el
+   * cliente, y "Cargo en cuenta" solo si lo cobran de su cuenta. Nunca los
+   * dos: o paga él, o se lo cargan.
+   */
+  const visibles = definicion.filter((p) => {
+    if (p.clave === 'pago') return paganEllos;
+    if (p.clave === 'cargo') return hayCargo;
+    return true;
+  });
   const primeraPendiente = visibles.findIndex((p) => !hechos[p.clave]);
 
   return visibles.map((p, i) => ({
@@ -278,10 +354,18 @@ function construirPasos(v: VencimientoBase): Paso[] {
   }));
 }
 
+export interface ContextoCliente {
+  /**
+   * Viene de "Certificado digital" en BD - Clientes. Con certificado pagamos
+   * nosotros; sin él, el cliente paga con la carta de pago.
+   */
+  clienteConCertificado?: boolean;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** Convierte una página de Notion en un Vencimiento. Exportada para poder
  * comprobar el mapeo sin tocar la base real. */
-export function mapear(page: any): Vencimiento {
+export function mapear(page: any, contexto: ContextoCliente = {}): Vencimiento {
   const props = page.properties ?? {};
   const texto = (k: string): string | null =>
     props[k]?.rich_text?.[0]?.plain_text?.trim() || null;
@@ -323,6 +407,12 @@ export function mapear(page: any): Vencimiento {
     referenciaPresentacion: texto('Nº referencia presentación'),
     fechaCargo: fecha('Fecha cargo'),
 
+    cartaPagoUrl: props['Carta de pago URL']?.url ?? null,
+    nrc: texto('NRC'),
+    fechaPago: fecha('Fecha pago'),
+    justificantePagoUrl: props['Justificante pago URL']?.url ?? null,
+    clienteConCertificado: contexto.clienteConCertificado ?? false,
+
     resultado: props['Resultado modelo']?.select?.name ?? null,
     importe: props['Importe a ingresar']?.number ?? null,
     formaPago,
@@ -341,6 +431,8 @@ export function mapear(page: any): Vencimiento {
     pasos: construirPasos(base),
     progreso: calcularProgreso(base),
     presentado,
+    pagaElCliente: pagaElCliente(base),
+    pagado: !!base.fechaPago,
     esperaConformidad:
       !presentado &&
       !base.conformidadFecha &&

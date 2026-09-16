@@ -80,3 +80,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Pago con NRC --- */
+
+.pago {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.pagoTitulo {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.nrc {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  word-break: break-all;
+}
+
+.avisoSuave {
+  margin: 0 0 14px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+}

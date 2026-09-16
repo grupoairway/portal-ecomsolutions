@@ -10,6 +10,7 @@
 
 import { cache } from 'react';
 import { Client } from '@notionhq/client';
+import { getPerfilCliente } from './notion';
 import { mapear, type Vencimiento } from './vencimientos-tipos';
 
 export * from './vencimientos-tipos';
@@ -26,6 +27,11 @@ const notion = new Client({ auth: process.env.NOTION_TOKEN });
 export const getVencimientos = cache(async function getVencimientos(
   clienteId: string,
 ): Promise<Vencimiento[]> {
+  // El certificado digital decide quién paga, y vive en la ficha del cliente.
+  // getPerfilCliente está cacheada, así que no añade una consulta por pantalla.
+  const perfil = await getPerfilCliente(clienteId);
+  const contexto = { clienteConCertificado: perfil?.certificadoDigital ?? false };
+
   const resultados: unknown[] = [];
   let cursor: string | undefined;
 
@@ -41,7 +47,7 @@ export const getVencimientos = cache(async function getVencimientos(
     cursor = res.next_cursor ?? undefined;
   } while (cursor);
 
-  return resultados.map(mapear);
+  return resultados.map((page) => mapear(page, contexto));
 });
 
 /** Un vencimiento suelto, comprobando que pertenece al cliente de la sesión. */
@@ -59,5 +65,9 @@ export async function getVencimiento(
   if (!relacionados.some((r) => normalizar(r) === normalizar(clienteId))) {
     return null;
   }
-  return mapear(page);
+
+  const perfil = await getPerfilCliente(clienteId);
+  return mapear(page, {
+    clienteConCertificado: perfil?.certificadoDigital ?? false,
+  });
 }
