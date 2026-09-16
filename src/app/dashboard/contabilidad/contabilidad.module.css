@@ -1,0 +1,17 @@
+.aviso {
+  margin: 0;
+  background: var(--ok-soft);
+  color: var(--ok);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.error {
+  margin-top: 10px;
+  background: var(--warn-soft);
+  color: var(--warn);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 14px;
+}

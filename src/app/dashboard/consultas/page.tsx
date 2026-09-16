@@ -1,14 +1,9 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { decodeSession } from '@/lib/session';
+import { requireSession } from '@/lib/session-server';
 import { buscarClientePorEmail } from '@/lib/notion';
 import ConsultasClient from './ConsultasClient';
 
 export default async function ConsultasPage() {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
   let nombreCliente = session.nombre;
   if (!nombreCliente || nombreCliente === 'Cliente') {

@@ -9,7 +9,7 @@ export default function VerifyPage({
   // La verificación real la hace la API route /api/auth/verify
   // Esta página actúa como fallback o muestra errores
   if (searchParams.token) {
-    redirect(`/api/auth/verify?token=${searchParams.token}`);
+    redirect(`/api/auth/verify?token=${encodeURIComponent(searchParams.token)}`);
   }
 
   return (

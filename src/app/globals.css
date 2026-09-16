@@ -1,16 +1,86 @@
+/*
+ * Tokens del portal v2 (referencia: docs/maqueta-portal.html).
+ *
+ * Los nombres --color-* son los de la versión anterior: se conservan como
+ * alias de los nuevos para que los módulos CSS que aún no se han migrado
+ * (documentos, consultas, balance, pyg, modelos) sigan funcionando.
+ */
 :root {
-  --color-blue: #2563eb;
-  --color-blue-dark: #1d4ed8;
-  --color-blue-light: #eff6ff;
-  --color-blue-border: #bfdbfe;
-  --color-bg: #f9fafb;
-  --color-white: #ffffff;
-  --color-text: #111827;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
+  /* Marca */
+  --brand: #185fa5;
+  --brand-ink: #0e3f70;
+  --brand-soft: #e6eff8;
+
+  /* Superficies y texto */
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --ink: #16212c;
+  --muted: #5e6e7e;
+  --line: #dce3ea;
+
+  /* Estados */
+  --ok: #1f7a4d;
+  --ok-soft: #e3f3ea;
+  --warn: #9a5b00;
+  --warn-soft: #fcf0dc;
+  --alert: #b3261e;
+  --alert-soft: #fbe7e5;
+
+  /* Medidas compartidas */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --sidebar-width: 240px;
+  --content-max: 1080px;
+
+  /* Alias heredados */
+  --color-blue: var(--brand);
+  --color-blue-dark: var(--brand-ink);
+  --color-blue-light: var(--brand-soft);
+  --color-blue-border: var(--line);
+  --color-bg: var(--bg);
+  --color-white: var(--surface);
+  --color-text: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--line);
+  --color-success: var(--ok);
+  --color-warning: var(--warn);
+  --color-danger: var(--alert);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --brand: #5a9bdb;
+    --brand-ink: #a9ccf0;
+    --brand-soft: #16293d;
+    --bg: #0f151c;
+    --surface: #17202a;
+    --ink: #e6edf3;
+    --muted: #93a3b3;
+    --line: #263341;
+    --ok: #5cc08a;
+    --ok-soft: #153024;
+    --warn: #e3a64a;
+    --warn-soft: #33260f;
+    --alert: #ef7a72;
+    --alert-soft: #3a1917;
+  }
+}
+
+:root[data-theme='dark'] {
+  --brand: #5a9bdb;
+  --brand-ink: #a9ccf0;
+  --brand-soft: #16293d;
+  --bg: #0f151c;
+  --surface: #17202a;
+  --ink: #e6edf3;
+  --muted: #93a3b3;
+  --line: #263341;
+  --ok: #5cc08a;
+  --ok-soft: #153024;
+  --warn: #e3a64a;
+  --warn-soft: #33260f;
+  --alert: #ef7a72;
+  --alert-soft: #3a1917;
 }
 
 *,
@@ -28,11 +98,12 @@ body {
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-inter), 'Inter', Arial, sans-serif;
-  font-size: 16px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), Figtree, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -52,4 +123,219 @@ button,
 select,
 textarea {
   font-family: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------
+ * Primitivas compartidas del portal v2.
+ * Son globales a propósito: las usan el layout y todas las vistas
+ * nuevas, igual que en la maqueta.
+ * --------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+/* Panel que pide algo al cliente */
+.panel-todo {
+  border-left: 4px solid var(--warn);
+}
+
+.panel h2,
+.panel-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.row:first-of-type {
+  border-top: 0;
+}
+
+.row small {
+  display: block;
+  color: var(--muted);
+}
+
+.chip {
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.chip-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.chip-warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+.chip-alert {
+  background: var(--alert-soft);
+  color: var(--alert);
+}
+
+.chip-neutral {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+
+.btn {
+  display: inline-block;
+  background: var(--brand);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--brand);
+  border: 1px solid var(--line);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 18px;
+}
+
+.page-title {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 0 0 26px;
+}
+
+.note {
+  background: var(--brand-soft);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--brand-ink);
+  font-size: 14px;
+}
+
+.bignum {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.tablewrap {
+  overflow-x: auto;
+}
+
+.tablewrap table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 520px;
+}
+
+.tablewrap th,
+.tablewrap td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.tablewrap th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@media (max-width: 820px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Rejilla de meses de la documentación mensual */
+.months {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.month {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.month b {
+  display: block;
+  font-size: 15px;
+}
+
+/* Casillas de la confirmación del cierre mensual */
+.checks {
+  display: grid;
+  gap: 10px;
+}
+
+.checks label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 15px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.checks input {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  accent-color: var(--brand);
 }

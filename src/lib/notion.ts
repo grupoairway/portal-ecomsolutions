@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { Client } from '@notionhq/client';
 export type { MetricasInforme, InformeNotion } from './informe-tipos';
 export { parseMetricas } from './informe-tipos';
@@ -337,3 +338,63 @@ export async function getDocumentosCliente(
     };
   });
 }
+
+export interface PerfilCliente {
+  nombre: string;
+  email: string | null;
+  nif: string | null;
+  telefono: string | null;
+  tipoCliente: string | null;
+  tipoRelacion: string | null;
+  regimenIrpf: string | null;
+  regimenIva: string | null;
+  plan: string | null;
+  /** Cuota mensual en euros. */
+  cuotaMensual: number | null;
+  fechaAlta: string | null;
+  iban: string | null;
+  estado: string | null;
+  certificadoDigital: boolean;
+  fechaCaducidadCertificado: string | null;
+  carpetaDrive: string | null;
+  /** Inscrito en el registro de devolución mensual del IVA. */
+  redeme: boolean;
+  /** "Trimestral" o "Mensual": decide si puede pedir el IVA fuera del 4T. */
+  periodicidadIva: string | null;
+}
+
+/**
+ * Datos de cabecera del cliente para la portada. Se lee la ficha por id, no
+ * por email, porque la sesion ya trae el id de Notion.
+ */
+export const getPerfilCliente = cache(async function getPerfilCliente(
+  clienteId: string,
+): Promise<PerfilCliente | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = (await notion.pages.retrieve({ page_id: clienteId })) as any;
+    const props = page.properties ?? {};
+    return {
+      nombre: props['Nombre']?.title?.[0]?.plain_text ?? '',
+      email: props['Email']?.rich_text?.[0]?.plain_text?.trim() || null,
+      nif: props['NIF/CIF']?.rich_text?.[0]?.plain_text?.trim() || null,
+      telefono: props['Teléfono']?.phone_number ?? null,
+      tipoCliente: props['Tipo de cliente']?.select?.name ?? null,
+      tipoRelacion: props['Tipo de relación']?.select?.name ?? null,
+      regimenIrpf: props['Régimen IRPF']?.select?.name ?? null,
+      regimenIva: props['Régimen IVA']?.select?.name ?? null,
+      plan: props['Plan contratado']?.select?.name ?? null,
+      cuotaMensual: props['MRR']?.number ?? null,
+      fechaAlta: props['Fecha alta']?.date?.start ?? null,
+      iban: props['IBAN']?.rich_text?.[0]?.plain_text?.trim() || null,
+      estado: props['Estado']?.select?.name ?? null,
+      certificadoDigital: props['Certificado digital']?.checkbox ?? false,
+      fechaCaducidadCertificado: props['Fecha caducidad cert digital']?.date?.start ?? null,
+      carpetaDrive: props['Carpeta Drive']?.url ?? null,
+      redeme: props['REDEME']?.checkbox ?? false,
+      periodicidadIva: props['Periodicidad IVA']?.select?.name ?? null,
+    };
+  } catch {
+    return null;
+  }
+});

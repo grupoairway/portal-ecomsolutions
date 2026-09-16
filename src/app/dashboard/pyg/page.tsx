@@ -1,6 +1,4 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { decodeSession } from '@/lib/session';
+import { requireSession } from '@/lib/session-server';
 import { getUltimoInforme } from '@/lib/notion';
 import TablaContable from '@/components/TablaContable';
 import { parseExcelFilas } from '@/lib/balance-tipos';
@@ -8,10 +6,7 @@ import type { FilaBalance } from '@/lib/balance-tipos';
 import styles from './pyg.module.css';
 
 export default async function PyGPage() {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
   const informe = await getUltimoInforme(session.clienteId).catch(() => null);
 

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Figtree } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const figtree = Figtree({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-sans',
 });
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={inter.variable}>
+    <html lang="es" className={figtree.variable}>
       <body>{children}</body>
     </html>
   );

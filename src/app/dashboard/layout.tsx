@@ -1,13 +1,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { decodeSession } from '@/lib/session';
-import { buscarClientePorEmail, getModelosPendientesCount } from '@/lib/notion';
+import { requireSession } from '@/lib/session-server';
+import { SESSION_COOKIE } from '@/lib/session';
+import { getPerfilCliente } from '@/lib/notion';
+import { borradoresPendientes, getVencimientos } from '@/lib/vencimientos';
 import DashboardNav from '@/components/DashboardNav';
-import styles from './dashboard.module.css';
+import styles from './shell.module.css';
 
 async function logout() {
   'use server';
-  cookies().delete('portal_session');
+  cookies().delete(SESSION_COOKIE);
   redirect('/');
 }
 
@@ -16,62 +18,46 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
-  // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
-  const [clienteNotion, modelosPendientes] = await Promise.all([
-    (!session.nombre || session.nombre === 'Cliente')
-      ? buscarClientePorEmail(session.email).catch(() => null)
-      : Promise.resolve(null),
-    getModelosPendientesCount(session.clienteId).catch(() => 0),
+  const [perfil, vencimientos] = await Promise.all([
+    getPerfilCliente(session.clienteId),
+    getVencimientos(session.clienteId).catch(() => []),
   ]);
 
-  let nombreMostrar = session.nombre;
-  if (!nombreMostrar || nombreMostrar === 'Cliente') {
-    if (clienteNotion?.nombre) nombreMostrar = clienteNotion.nombre;
-  }
+  const nombre =
+    session.nombre && session.nombre !== 'Cliente'
+      ? session.nombre
+      : (perfil?.nombre ?? 'Cliente');
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.headerLogo}>
-            <img
-              src="/logo.png"
-              alt=""
-              style={{ width: '40px', height: '40px', objectFit: 'contain', background: 'transparent' }}
-            />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
-              Ecom<span style={{ color: '#2563eb' }}>Solutions</span>
-            </span>
-          </div>
-
-          <div className={styles.headerRight}>
-            <div className={styles.headerUser}>
-              <span className={styles.headerNombre}>Hola, {nombreMostrar}</span>
-              <span className={styles.badgeAcceso}>Último acceso: hoy</span>
-            </div>
-            <form action={logout}>
-              <button type="submit" className={styles.btnLogout}>
-                Cerrar sesión
-              </button>
-            </form>
-          </div>
+    <div className={styles.app}>
+      <nav className={styles.side} aria-label="Secciones del portal">
+        <div className={styles.logo}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" className={styles.logoImg} />
+          <span className={styles.logoText}>
+            EcomSolutions
+            <span>Portal del cliente</span>
+          </span>
         </div>
 
-        <nav className={styles.nav}>
-          <div className={styles.navInner}>
-            <DashboardNav modelosPendientes={modelosPendientes} />
-          </div>
-        </nav>
-      </header>
+        <DashboardNav
+          borradoresPendientes={borradoresPendientes(vencimientos).length}
+        />
 
-      <main className={styles.layoutMain}>
-        {children}
-      </main>
+        <div className={styles.sideFooter}>
+          <span className={styles.userName}>{nombre}</span>
+          <span className={styles.userEmail}>{session.email}</span>
+          <form action={logout}>
+            <button type="submit" className={styles.btnLogout}>
+              Cerrar sesión
+            </button>
+          </form>
+        </div>
+      </nav>
+
+      <main className={styles.main}>{children}</main>
     </div>
   );
 }

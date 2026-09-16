@@ -7,54 +7,69 @@ import styles from './DashboardNav.module.css';
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
   exact: boolean;
   badge?: number;
+  /** Etiqueta pequeña a la derecha, como "Quantum" en la maqueta. */
+  ext?: string;
 }
 
 interface Props {
-  modelosPendientes?: number;
+  /** Borradores esperando la conformidad del cliente. */
+  borradoresPendientes?: number;
 }
 
-export default function DashboardNav({ modelosPendientes = 0 }: Props) {
+export default function DashboardNav({ borradoresPendientes = 0 }: Props) {
   const pathname = usePathname();
 
-  const NAV_ITEMS: NavItem[] = [
-    { href: '/dashboard', label: 'Inicio', icon: '🏠', exact: true },
-    { href: '/dashboard/balance', label: 'Balance', icon: '⚖️', exact: false },
-    { href: '/dashboard/pyg', label: 'PyG', icon: '📈', exact: false },
-    { href: '/dashboard/documentos', label: 'Documentos', icon: '📁', exact: false },
+  // Mismo orden y mismos nombres que docs/maqueta-portal.html.
+  const principales: NavItem[] = [
+    { href: '/dashboard', label: 'Inicio', exact: true },
+    { href: '/dashboard/calendario', label: 'Calendario fiscal', exact: false },
     {
-      href: '/dashboard/modelos',
-      label: 'Modelos',
-      icon: '📋',
+      href: '/dashboard/borradores',
+      label: 'Borradores y justificantes',
       exact: false,
-      badge: modelosPendientes > 0 ? modelosPendientes : undefined,
+      badge: borradoresPendientes > 0 ? borradoresPendientes : undefined,
     },
-    { href: '/dashboard/consultas', label: 'Consultas', icon: '💬', exact: false },
+    { href: '/dashboard/documentos', label: 'Documentación', exact: false },
+    { href: '/dashboard/notificaciones', label: 'Notificaciones', exact: false },
+    { href: '/dashboard/consultas', label: 'Consultas', exact: false },
   ];
+
+  const secundarias: NavItem[] = [
+    {
+      href: '/dashboard/contabilidad',
+      label: 'Mi contabilidad',
+      exact: false,
+      ext: 'Quantum',
+    },
+    { href: '/dashboard/cuenta', label: 'Mi cuenta', exact: false },
+  ];
+
+  function render(item: NavItem) {
+    const isActive = item.exact
+      ? pathname === item.href
+      : pathname.startsWith(item.href);
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={isActive ? 'page' : undefined}
+        className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+      >
+        <span>{item.label}</span>
+        {item.badge != null && <span className={styles.count}>{item.badge}</span>}
+        {item.ext && <span className={styles.ext}>{item.ext}</span>}
+      </Link>
+    );
+  }
 
   return (
     <>
-      {NAV_ITEMS.map((item) => {
-        const isActive = item.exact
-          ? pathname === item.href
-          : pathname.startsWith(item.href);
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
-          >
-            <span className={styles.icon}>{item.icon}</span>
-            <span className={styles.label}>{item.label}</span>
-            {item.badge != null && (
-              <span className={styles.badge}>{item.badge}</span>
-            )}
-          </Link>
-        );
-      })}
+      {principales.map(render)}
+      <div className={styles.sep} />
+      {secundarias.map(render)}
     </>
   );
 }

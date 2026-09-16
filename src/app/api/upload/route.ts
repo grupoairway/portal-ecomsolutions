@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { SESSION_COOKIE, verifySession } from '@/lib/session';
 import { parseBalance, parsePyG } from '@/lib/excel-parser';
 
 export async function POST(request: NextRequest) {
-  const sessionToken = request.cookies.get('portal_session')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  }
-
-  const payload = await verifyToken(sessionToken);
+  const payload = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
   if (!payload) {
-    return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendMagicLink } from '@/lib/mailer'
+import { generateMagicLinkToken } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,10 +44,8 @@ export async function POST(req: NextRequest) {
     const nombre = cliente.properties?.Nombre?.title?.[0]?.plain_text || 'Cliente'
     console.log('Cliente encontrado:', nombre, clienteId)
 
-    // Token incluye nombre para la sesión
-    const token = Buffer.from(
-      JSON.stringify({ clienteId, email, nombre, exp: Date.now() + 86400000 })
-    ).toString('base64')
+    // Magic link firmado (JWT, caduca en 24 h)
+    const token = await generateMagicLinkToken({ clienteId, email, nombre })
     const magicUrl = `${process.env.BASE_URL}/auth/verify?token=${token}`
     console.log('Magic URL generada:', magicUrl.substring(0, 50) + '...')
 

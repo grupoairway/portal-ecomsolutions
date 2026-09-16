@@ -1,4 +1,5 @@
 import type { FilaBalance } from '@/lib/balance-tipos';
+import { euros } from '@/lib/fechas';
 import styles from './TablaContable.module.css';
 
 interface TablaContableProps {
@@ -8,10 +9,7 @@ interface TablaContableProps {
 
 function formatEuros(v: number | null): string {
   if (v === null || v === undefined) return '—';
-  return new Intl.NumberFormat('es-ES', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v) + ' €';
+  return euros(v);
 }
 
 function varBadge(v: number | null): { texto: string; color: string } {

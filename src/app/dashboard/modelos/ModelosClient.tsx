@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ModeloVencimiento } from '@/lib/modelos-tipos';
+import { euros } from '@/lib/fechas';
 import styles from './modelos.module.css';
 
 type FlowStep = 'idle' | 'iban' | 'motivo';
@@ -28,8 +29,7 @@ function validarIBAN(iban: string): boolean {
 }
 
 function formatImporte(importe: number | null): string {
-  if (importe == null) return '';
-  return importe.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  return euros(importe);
 }
 
 function formatFecha(fecha: string | null): string {

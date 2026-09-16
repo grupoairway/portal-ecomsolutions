@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { fechaCorta } from '@/lib/fechas';
+import Chip, { type TonoChip } from '@/components/Chip';
 import styles from './consultas.module.css';
 
 interface Consulta {
@@ -10,6 +12,7 @@ interface Consulta {
   estado: string;
   fecha: string | null;
   respuesta: string | null;
+  urgente?: boolean;
 }
 
 interface Props {
@@ -19,31 +22,33 @@ interface Props {
   consultas: Consulta[];
 }
 
-function formatFecha(fecha: string | null): string {
-  if (!fecha) return '';
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+function tonoEstado(estado: string): TonoChip {
+  if (estado === 'Respondida') return 'ok';
+  if (estado === 'Cerrada') return 'neutral';
+  return 'warn';
 }
 
-function BadgeEstado({ estado }: { estado: string }) {
-  if (estado === 'Respondida') return <span className={styles.badgeRespondida}>Respondida</span>;
-  if (estado === 'Nueva') return <span className={styles.badgeNueva}>Pendiente</span>;
-  return <span className={styles.badgePendiente}>{estado}</span>;
+function textoEstado(estado: string): string {
+  return estado === 'Nueva' ? 'Pendiente' : estado;
 }
 
-export default function ConsultasClient({ clienteId, clienteNombre, clienteEmail, consultas: initial }: Props) {
+export default function ConsultasClient({
+  clienteId,
+  clienteNombre,
+  clienteEmail,
+  consultas: initial,
+}: Props) {
   const [asunto, setAsunto] = useState('');
   const [mensaje, setMensaje] = useState('');
+  const [urgente, setUrgente] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(false);
   const [error, setError] = useState('');
   const [consultas, setConsultas] = useState<Consulta[]>(initial);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
 
-  const canSubmit = asunto.trim().length > 0 && mensaje.trim().length >= 20 && !enviando;
+  const canSubmit =
+    asunto.trim().length > 0 && mensaje.trim().length >= 20 && !enviando;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +59,14 @@ export default function ConsultasClient({ clienteId, clienteNombre, clienteEmail
       const res = await fetch('/api/consultas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asunto: asunto.trim(), mensaje: mensaje.trim(), clienteId, clienteNombre, clienteEmail }),
+        body: JSON.stringify({
+          asunto: asunto.trim(),
+          mensaje: mensaje.trim(),
+          clienteId,
+          clienteNombre,
+          clienteEmail,
+          urgente,
+        }),
       });
 
       if (!res.ok) throw new Error('Error al enviar');
@@ -62,12 +74,11 @@ export default function ConsultasClient({ clienteId, clienteNombre, clienteEmail
       setExito(true);
       setAsunto('');
       setMensaje('');
+      setUrgente(false);
 
-      // Reload consultas
       const updated = await fetch(`/api/consultas?clienteId=${clienteId}`);
       if (updated.ok) {
-        const data = await updated.json() as Consulta[];
-        setConsultas(data);
+        setConsultas((await updated.json()) as Consulta[]);
       }
     } catch {
       setError('No se pudo enviar la consulta. Inténtalo de nuevo.');
@@ -77,7 +88,7 @@ export default function ConsultasClient({ clienteId, clienteNombre, clienteEmail
   }
 
   function toggleRespuesta(id: string) {
-    setExpandidos(prev => {
+    setExpandidos((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -86,99 +97,106 @@ export default function ConsultasClient({ clienteId, clienteNombre, clienteEmail
   }
 
   return (
-    <div className={styles.content}>
-      <div className={styles.pageHeader}>
-        <h1 className={styles.h1}>Consultas</h1>
-        <p className={styles.subtitulo}>Envía una consulta a tu gestor</p>
-      </div>
+    <>
+      <h1 className="page-title">Consultas</h1>
+      <p className="lead">
+        Respondemos en un máximo de 48 horas laborables. Si es urgente, márcalo.
+      </p>
 
-      {/* FORMULARIO */}
-      <form className={styles.formCard} onSubmit={handleSubmit}>
-        <h2 className={styles.sectionTitle}>Nueva consulta</h2>
+      {/* NUEVA CONSULTA */}
+      <form className="panel" onSubmit={handleSubmit}>
+        <h2 className="panel-title">Nueva consulta</h2>
 
         {exito && (
-          <div className={styles.successMsg}>
-            Consulta enviada. Te responderemos en menos de 24h.
-          </div>
+          <p className={styles.exito}>
+            Consulta enviada. Te responderemos en 48 horas laborables.
+          </p>
         )}
-        {error && <div className={styles.errorMsg}>{error}</div>}
+        {error && <p className={styles.error}>{error}</p>}
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="asunto">Asunto</label>
+        <label className={styles.campo} htmlFor="asunto">
+          <span>Asunto</span>
           <input
             id="asunto"
             type="text"
-            className={styles.input}
             value={asunto}
-            onChange={e => { setAsunto(e.target.value); setExito(false); }}
-            placeholder="Ej: Duda sobre el modelo 303"
+            onChange={(e) => {
+              setAsunto(e.target.value);
+              setExito(false);
+            }}
+            placeholder="Por ejemplo: duda sobre el modelo 303"
             required
           />
-        </div>
+        </label>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="mensaje">Mensaje</label>
+        <label className={styles.campo} htmlFor="mensaje">
+          <span>Escribe tu pregunta</span>
           <textarea
             id="mensaje"
-            className={styles.textarea}
             value={mensaje}
-            onChange={e => { setMensaje(e.target.value); setExito(false); }}
-            placeholder="Describe tu consulta con el máximo detalle posible... (mínimo 20 caracteres)"
+            onChange={(e) => {
+              setMensaje(e.target.value);
+              setExito(false);
+            }}
+            placeholder="Por ejemplo: ¿puedo deducirme el portátil que he comprado?"
             required
             minLength={20}
           />
-        </div>
+        </label>
 
-        <button type="submit" className={styles.btnEnviar} disabled={!canSubmit}>
-          {enviando ? 'Enviando...' : 'Enviar consulta'}
-        </button>
+        <div className="actions" style={{ marginTop: 10, alignItems: 'center' }}>
+          <label className={styles.urgente}>
+            <input
+              type="checkbox"
+              checked={urgente}
+              onChange={(e) => setUrgente(e.target.checked)}
+            />
+            <span>Es urgente</span>
+          </label>
+          <button type="submit" className="btn" disabled={!canSubmit}>
+            {enviando ? 'Enviando…' : 'Enviar consulta'}
+          </button>
+        </div>
       </form>
 
-      {/* HISTORIAL */}
-      <div className={styles.historialCard}>
-        <div className={styles.historialHeader}>
-          <h2 className={styles.sectionTitle}>Historial de consultas</h2>
-        </div>
+      {/* TUS CONSULTAS */}
+      <section className="panel">
+        <h2 className="panel-title">Tus consultas</h2>
 
         {consultas.length === 0 ? (
-          <div className={styles.emptyHistorial}>
+          <p style={{ margin: 0, color: 'var(--muted)' }}>
             No has enviado ninguna consulta todavía.
-          </div>
+          </p>
         ) : (
-          consultas.map(c => (
-            <div
-              key={c.id}
-              className={`${styles.consultaItem} ${c.estado === 'Respondida' ? styles.consultaItemRespondida : ''}`}
-            >
-              <div className={styles.consultaTop}>
-                <span className={styles.consultaAsunto}>{c.asunto}</span>
-                <BadgeEstado estado={c.estado} />
+          consultas.map((c) => (
+            <div className="row" key={c.id} style={{ alignItems: 'flex-start' }}>
+              <div>
+                {c.asunto}
+                <small>
+                  {c.fecha ? fechaCorta(c.fecha) : ''}
+                  {c.urgente ? ' · urgente' : ''}
+                  {c.mensaje ? ` · ${c.mensaje.slice(0, 90)}${c.mensaje.length > 90 ? '…' : ''}` : ''}
+                </small>
+                {c.respuesta && (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.verRespuesta}
+                      onClick={() => toggleRespuesta(c.id)}
+                    >
+                      {expandidos.has(c.id) ? 'Ocultar respuesta' : 'Ver respuesta'}
+                    </button>
+                    {expandidos.has(c.id) && (
+                      <div className={styles.respuesta}>{c.respuesta}</div>
+                    )}
+                  </>
+                )}
               </div>
-              <div className={styles.consultaMeta}>{formatFecha(c.fecha)}</div>
-              <div className={styles.consultaPreview}>
-                {c.mensaje.length > 100 ? `${c.mensaje.substring(0, 100)}...` : c.mensaje}
-              </div>
-              {c.respuesta && (
-                <>
-                  <button
-                    type="button"
-                    className={styles.btnVerRespuesta}
-                    onClick={() => toggleRespuesta(c.id)}
-                  >
-                    {expandidos.has(c.id) ? 'Ocultar respuesta' : 'Ver respuesta'}
-                  </button>
-                  {expandidos.has(c.id) && (
-                    <div className={styles.respuestaBox}>
-                      <div className={styles.respuestaLabel}>Respuesta del gestor</div>
-                      {c.respuesta}
-                    </div>
-                  )}
-                </>
-              )}
+              <Chip tono={tonoEstado(c.estado)}>{textoEstado(c.estado)}</Chip>
             </div>
           ))
         )}
-      </div>
-    </div>
+      </section>
+    </>
   );
 }
