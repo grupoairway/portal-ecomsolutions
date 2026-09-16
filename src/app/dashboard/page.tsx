@@ -1,305 +1,162 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/session-server';
-import { getVencimientosCliente, getDocumentosCliente, getInformesCliente, getModelosCliente, buscarClientePorEmail } from '@/lib/notion';
-import { parseMetricas } from '@/lib/informe-tipos';
-import type { DocumentoNotion } from '@/lib/notion';
-import VencimientosList from '@/components/VencimientosList';
-import GraficoBarras from '@/components/GraficoBarras';
-import GraficoLineas from '@/components/GraficoLineas';
-import FinancieroSection from '@/components/FinancieroSection';
-import styles from './dashboard.module.css';
+import { getPerfilCliente } from '@/lib/notion';
+import {
+  borradoresPendientes,
+  etiquetaEstado,
+  etiquetaModelo,
+  proximosVencimientos,
+  vencimientoDestacado,
+  getVencimientos,
+} from '@/lib/vencimientos';
+import { euros, fechaLarga, hoy } from '@/lib/fechas';
+import Seguimiento from '@/components/Seguimiento';
+import Chip from '@/components/Chip';
 
-const TIPO_ICONOS: Record<string, string> = {
-  'Modelos presentados': '📄',
-  'Escrituras y contratos': '📋',
-  'Nóminas': '💰',
-  'Notificaciones': '🔔',
-  'Otros': '📁',
-};
-
-function formatearFechaCorta(fecha: string | null): string {
-  if (!fecha) return '';
-  return new Date(fecha).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+/** "Autónomo Directa Simplificada · IRPF en directa simplificada · Plan Autónomo Pro" */
+function lineaPerfil(perfil: {
+  tipoCliente: string | null;
+  regimenIrpf: string | null;
+  plan: string | null;
+} | null): string {
+  if (!perfil) return '';
+  const partes = [
+    perfil.tipoCliente,
+    perfil.regimenIrpf && perfil.regimenIrpf !== 'No aplica'
+      ? `IRPF en ${perfil.regimenIrpf.toLowerCase()}`
+      : null,
+    // El plan se guarda con el precio ("Autónomo Pro 50€"); al cliente le basta
+    // el nombre.
+    perfil.plan ? `Plan ${perfil.plan.replace(/\s*\d+\s*€\s*$/, '')}` : null,
+  ].filter(Boolean);
+  return partes.join(' · ');
 }
 
-export default async function DashboardPage() {
+export default async function InicioPage() {
   const session = await requireSession();
 
-  // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
-  let nombreCliente = session.nombre
-  if (!nombreCliente || nombreCliente === 'Cliente') {
-    const clienteNotion = await buscarClientePorEmail(session.email).catch(() => null)
-    if (clienteNotion?.nombre) nombreCliente = clienteNotion.nombre
-  }
-
-  const [vencimientos, documentos, informes, consultasRes, modelos] = await Promise.all([
-    getVencimientosCliente(session.clienteId).catch(() => []),
-    getDocumentosCliente(session.clienteId).catch(() => []),
-    getInformesCliente(session.clienteId).catch(() => []),
-    fetch(
-      `${process.env.BASE_URL ?? 'http://localhost:3000'}/api/consultas?clienteId=${session.clienteId}`,
-      { cache: 'no-store' },
-    ).catch(() => null),
-    getModelosCliente(session.clienteId).catch(() => []),
+  const [perfil, vencimientos] = await Promise.all([
+    getPerfilCliente(session.clienteId),
+    getVencimientos(session.clienteId).catch(() => []),
   ]);
 
-  interface ConsultaResumen { id: string; asunto: string; estado: string; fecha: string | null; }
-  const consultasRecientes: ConsultaResumen[] = (consultasRes && consultasRes.ok)
-    ? ((await consultasRes.json()) as ConsultaResumen[]).slice(0, 2)
-    : [];
+  const nombre =
+    session.nombre && session.nombre !== 'Cliente'
+      ? session.nombre
+      : (perfil?.nombre ?? 'Cliente');
 
-  const documentosRecientes = documentos.slice(0, 3) as DocumentoNotion[];
-  const modelosPendientes = modelos.filter(m => m.estado === 'Listo para presentar').slice(0, 2);
-
-  // El componente VencimientosList separa internamente vencidos/próximos
-
-  // Build chart data from all informes, sorted chronologically
-  const sortedInformes = [...informes].sort((a, b) => a.fechaSubida.localeCompare(b.fechaSubida));
-  const datosGraficoBarra = sortedInformes
-    .map(inf => {
-      if (!inf.metricasJSON) return null;
-      const m = parseMetricas(inf.metricasJSON);
-      return {
-        periodo: inf.periodo || inf.ejercicio || 'Sin período',
-        ingresos: m.ingresos.actual,
-        gastos: Math.abs(m.otros_gastos.actual) + Math.abs(m.gastos_personal.actual),
-      };
-    })
-    .filter((d): d is NonNullable<typeof d> => d !== null);
-
-  const datosGraficoLinea = sortedInformes
-    .map(inf => {
-      if (!inf.metricasJSON) return null;
-      const m = parseMetricas(inf.metricasJSON);
-      return {
-        periodo: inf.periodo || inf.ejercicio || 'Sin período',
-        resultado: m.resultado_ejercicio.actual,
-      };
-    })
-    .filter((d): d is NonNullable<typeof d> => d !== null);
+  const pendientes = borradoresPendientes(vencimientos);
+  const destacado = vencimientoDestacado(vencimientos);
+  const proximos = proximosVencimientos(vencimientos, 5);
+  const quantumUrl = process.env.NEXT_PUBLIC_QUANTUM_URL ?? null;
+  const h = hoy();
 
   return (
     <>
-      {/* VENCIMIENTOS */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Vencimientos</h2>
-        </div>
-        <div className={styles.sectionCard}>
-          <VencimientosList vencimientos={vencimientos} />
-        </div>
-      </section>
+      <h1 style={{ fontSize: 28, lineHeight: 1.2, margin: '0 0 4px', fontWeight: 700 }}>
+        Hola, {nombre}
+      </h1>
+      <p className="lead">{lineaPerfil(perfil)}</p>
 
-      {/* RESUMEN FINANCIERO */}
-      <section className={styles.section}>
-        <FinancieroSection informes={informes} nombreCliente={nombreCliente} />
-      </section>
-
-      {/* GRAFICOS */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Evolución</h2>
-        <div className={styles.graficosGrid}>
-          <GraficoBarras datos={datosGraficoBarra} titulo="Ingresos y gastos por período" />
-          <GraficoLineas datos={datosGraficoLinea} titulo="Resultado del ejercicio" />
-        </div>
-      </section>
-
-      {/* MODELOS PENDIENTES DE CONFIRMAR */}
-      {modelosPendientes.length > 0 && (
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Modelos pendientes de confirmar</h2>
-            <Link href="/dashboard/modelos" className={styles.docVerTodos}>
-              Ver todos →
-            </Link>
-          </div>
-          <div className={styles.sectionCard}>
-            {modelosPendientes.map((modelo, i) => (
-              <div
-                key={modelo.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 0',
-                  borderBottom: i < modelosPendientes.length - 1 ? '1px solid #f3f4f6' : 'none',
-                }}
-              >
-                <span style={{
-                  background: '#1e40af',
-                  color: 'white',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  padding: '3px 9px',
-                  borderRadius: 5,
-                  flexShrink: 0,
-                }}>
-                  {modelo.modelo}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {modelo.nombre || `Modelo ${modelo.modelo} · ${modelo.periodo}`}
-                  </div>
-                  {modelo.importeAIngresar != null && modelo.resultadoModelo && (
-                    <div style={{ fontSize: 12, marginTop: 2, color: modelo.resultadoModelo === 'A pagar' ? '#b91c1c' : '#15803d' }}>
-                      {modelo.resultadoModelo}: {modelo.importeAIngresar.toLocaleString('es-ES', { minimumFractionDigits: 2 })} €
-                    </div>
-                  )}
+      {/* NECESITAMOS DE TI */}
+      {pendientes.length > 0 ? (
+        <section className="panel panel-todo">
+          <h2 className="panel-title">Necesitamos de ti</h2>
+          {pendientes.map((v) => {
+            const fueraDePlazo =
+              v.plazoConformidad != null && v.plazoConformidad < h;
+            return (
+              <div className="row" key={v.id}>
+                <div>
+                  Dar conformidad al borrador del modelo {v.modelo} de {v.periodo}
+                  <small>
+                    {v.plazoConformidad
+                      ? `${fueraDePlazo ? 'El plazo venció el' : 'Plazo:'} ${fechaLarga(v.plazoConformidad)}`
+                      : 'Sin plazo fijado'}
+                  </small>
                 </div>
-                <Link
-                  href="/dashboard/modelos"
-                  style={{ fontSize: 13, color: 'var(--color-blue)', fontWeight: 600, flexShrink: 0 }}
-                >
-                  Confirmar →
+                <Link href={`/dashboard/borradores#v-${v.id}`} className="btn">
+                  Revisar borrador
                 </Link>
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </section>
+      ) : (
+        <section className="panel">
+          <h2 className="panel-title">No necesitamos nada de ti</h2>
+          <p style={{ margin: 0, color: 'var(--muted)' }}>
+            Ahora mismo no tienes nada pendiente. Cuando publiquemos un borrador
+            para que lo revises, te avisaremos por correo y aparecerá aquí.
+          </p>
         </section>
       )}
 
-      {/* DOCUMENTOS RECIENTES */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Documentos recientes</h2>
-          <Link href="/dashboard/documentos" className={styles.docVerTodos}>
-            Ver todos →
-          </Link>
-        </div>
-        <div className={styles.sectionCard}>
-          {documentosRecientes.length === 0 ? (
-            <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
-              No hay documentos disponibles todavía.
+      {/* SEGUIMIENTO */}
+      {destacado && (
+        <section className="panel">
+          <h2 className="panel-title">
+            {etiquetaModelo(destacado)} · {destacado.periodo}
+          </h2>
+          <Seguimiento vencimiento={destacado} />
+        </section>
+      )}
+
+      <div className="grid2">
+        {/* PROXIMOS VENCIMIENTOS */}
+        <section className="panel">
+          <h2 className="panel-title">Próximos vencimientos</h2>
+          {proximos.length === 0 ? (
+            <p style={{ margin: 0, color: 'var(--muted)' }}>
+              No tienes vencimientos abiertos.
             </p>
           ) : (
-            <div className={styles.docsRecentesGrid}>
-              {documentosRecientes.map((doc) => (
-                <div key={doc.id} className={styles.docRecienteItem}>
-                  <div className={styles.docRecienteIcono}>
-                    {TIPO_ICONOS[doc.tipo] ?? '📁'}
+            proximos.map((v) => {
+              const etiqueta = etiquetaEstado(v);
+              return (
+                <div className="row" key={v.id}>
+                  <div>
+                    {etiquetaModelo(v)} · {v.periodo}
+                    <small>
+                      {v.fechaLimite
+                        ? `Hasta el ${fechaLarga(v.fechaLimite)}`
+                        : 'Sin fecha límite'}
+                      {v.importe != null ? ` · ${euros(v.importe)}` : ''}
+                    </small>
                   </div>
-                  <div className={styles.docRecienteInfo}>
-                    <div className={styles.docRecienteNombre}>{doc.nombre}</div>
-                    <div className={styles.docRecienteMeta}>
-                      {doc.tipo}
-                      {doc.fecha ? ` · ${formatearFechaCorta(doc.fecha)}` : ''}
-                    </div>
-                  </div>
-                  {doc.urlDrive ? (
-                    <a
-                      href={doc.urlDrive}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.docRecienteLink}
-                    >
-                      Abrir →
-                    </a>
-                  ) : null}
+                  <Chip tono={etiqueta.tono}>{etiqueta.texto}</Chip>
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
-        </div>
-      </section>
+        </section>
 
-      {/* CONSULTAS RECIENTES */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Consultas recientes</h2>
-          <Link href="/dashboard/consultas" className={styles.docVerTodos}>
-            Nueva consulta →
-          </Link>
-        </div>
-        <div className={styles.sectionCard}>
-          {consultasRecientes.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
-              <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
-                No has enviado ninguna consulta todavía.
-              </p>
-              <Link
-                href="/dashboard/consultas"
-                style={{
-                  display: 'inline-block',
-                  border: '1px solid var(--color-blue)',
-                  color: 'var(--color-blue)',
-                  borderRadius: 8,
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                }}
+        {/* QUANTUM */}
+        <section className="panel">
+          <h2 className="panel-title">Tu negocio en Quantum</h2>
+          <p style={{ margin: '0 0 14px', color: 'var(--muted)' }}>
+            Tus facturas, tus gastos y tus resultados se consultan en Quantum,
+            siempre actualizados. Aquí solo gestionamos lo que tiene plazo.
+          </p>
+          <div className="actions">
+            {quantumUrl ? (
+              <a
+                href={quantumUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn"
               >
-                Hacer una consulta
-              </Link>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {consultasRecientes.map((c, i) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    padding: '12px 0',
-                    borderBottom: i < consultasRecientes.length - 1 ? '1px solid #f3f4f6' : 'none',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {c.asunto}
-                    </div>
-                    {c.fecha && (
-                      <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 2 }}>
-                        {formatearFechaCorta(c.fecha)}
-                      </div>
-                    )}
-                  </div>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: '2px 8px',
-                    borderRadius: 20,
-                    whiteSpace: 'nowrap',
-                    background: c.estado === 'Respondida' ? '#dcfce7' : '#fef3c7',
-                    color: c.estado === 'Respondida' ? '#15803d' : '#92400e',
-                  }}>
-                    {c.estado === 'Nueva' ? 'Pendiente' : c.estado}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ACCESOS RAPIDOS */}
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Informes detallados</h2>
-        <div className={styles.accesosGrid}>
-          <Link href="/dashboard/balance" className={styles.accesoCard}>
-            <div className={styles.accesoIcon}>⚖️</div>
-            <div className={styles.accesoInfo}>
-              <div className={styles.accesoTitulo}>Balance</div>
-              <div className={styles.accesoDesc}>Activo, pasivo y patrimonio neto</div>
-            </div>
-            <span className={styles.accesoArrow}>→</span>
-          </Link>
-          <Link href="/dashboard/pyg" className={styles.accesoCard}>
-            <div className={styles.accesoIcon}>📈</div>
-            <div className={styles.accesoInfo}>
-              <div className={styles.accesoTitulo}>Pérdidas y Ganancias</div>
-              <div className={styles.accesoDesc}>Ingresos, gastos y resultado</div>
-            </div>
-            <span className={styles.accesoArrow}>→</span>
-          </Link>
-        </div>
-      </section>
+                Abrir Quantum
+              </a>
+            ) : (
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                Si no recuerdas tu acceso a Quantum, escríbenos desde Consultas y
+                te reenviamos la invitación.
+              </span>
+            )}
+          </div>
+        </section>
+      </div>
     </>
   );
 }

@@ -7,54 +7,91 @@ import styles from './DashboardNav.module.css';
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
   exact: boolean;
   badge?: number;
+  /** Etiqueta pequeña a la derecha, p. ej. el nombre del programa externo. */
+  ext?: string;
+  external?: boolean;
 }
 
 interface Props {
-  modelosPendientes?: number;
+  /** Borradores esperando la conformidad del cliente. */
+  borradoresPendientes?: number;
+  quantumUrl?: string | null;
 }
 
-export default function DashboardNav({ modelosPendientes = 0 }: Props) {
+export default function DashboardNav({
+  borradoresPendientes = 0,
+  quantumUrl,
+}: Props) {
   const pathname = usePathname();
 
-  const NAV_ITEMS: NavItem[] = [
-    { href: '/dashboard', label: 'Inicio', icon: '🏠', exact: true },
-    { href: '/dashboard/balance', label: 'Balance', icon: '⚖️', exact: false },
-    { href: '/dashboard/pyg', label: 'PyG', icon: '📈', exact: false },
-    { href: '/dashboard/documentos', label: 'Documentos', icon: '📁', exact: false },
+  const principales: NavItem[] = [
+    { href: '/dashboard', label: 'Inicio', exact: true },
     {
-      href: '/dashboard/modelos',
-      label: 'Modelos',
-      icon: '📋',
+      href: '/dashboard/borradores',
+      label: 'Borradores y justificantes',
       exact: false,
-      badge: modelosPendientes > 0 ? modelosPendientes : undefined,
+      badge: borradoresPendientes > 0 ? borradoresPendientes : undefined,
     },
-    { href: '/dashboard/consultas', label: 'Consultas', icon: '💬', exact: false },
+    { href: '/dashboard/documentos', label: 'Documentación', exact: false },
+    { href: '/dashboard/consultas', label: 'Consultas', exact: false },
   ];
+
+  const secundarias: NavItem[] = [
+    { href: '/dashboard/balance', label: 'Balance', exact: false },
+    { href: '/dashboard/pyg', label: 'Pérdidas y ganancias', exact: false },
+    ...(quantumUrl
+      ? [
+          {
+            href: quantumUrl,
+            label: 'Mi contabilidad',
+            exact: false,
+            ext: 'Quantum',
+            external: true,
+          },
+        ]
+      : []),
+  ];
+
+  function render(item: NavItem) {
+    if (item.external) {
+      return (
+        <a
+          key={item.href}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.item}
+        >
+          <span>{item.label}</span>
+          <span className={styles.ext}>{item.ext}</span>
+        </a>
+      );
+    }
+
+    const isActive = item.exact
+      ? pathname === item.href
+      : pathname.startsWith(item.href);
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={isActive ? 'page' : undefined}
+        className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
+      >
+        <span>{item.label}</span>
+        {item.badge != null && <span className={styles.count}>{item.badge}</span>}
+      </Link>
+    );
+  }
 
   return (
     <>
-      {NAV_ITEMS.map((item) => {
-        const isActive = item.exact
-          ? pathname === item.href
-          : pathname.startsWith(item.href);
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`${styles.item} ${isActive ? styles.itemActive : ''}`}
-          >
-            <span className={styles.icon}>{item.icon}</span>
-            <span className={styles.label}>{item.label}</span>
-            {item.badge != null && (
-              <span className={styles.badge}>{item.badge}</span>
-            )}
-          </Link>
-        );
-      })}
+      {principales.map(render)}
+      <div className={styles.sep} />
+      {secundarias.map(render)}
     </>
   );
 }

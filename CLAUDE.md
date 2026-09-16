@@ -12,6 +12,13 @@ Diseño de referencia para la reestructuración: docs/maqueta-portal.html
 - Las fechas se comparan extrayendo los 10 primeros caracteres (YYYY-MM-DD) para evitar desfases por UTC.
 - Las conformidades y cierres mensuales guardan siempre fecha y hora: son prueba ante el cliente.
 
+## Datos de prueba
+- Prohibido escribir en registros de clientes reales de Notion.
+- Todas las pruebas de escritura se hacen solo sobre el cliente "CLIENTE PRUEBA"
+  (email: grupoairway@gmail.com) y sus vencimientos.
+- Antes de cualquier escritura en Notion durante pruebas, comprobar que el
+  registro pertenece a ese cliente; si no, abortar.
+
 ## Forma de trabajar
 - Textos de la interfaz en español, claros y sin tecnicismos.
 - Antes de cambios grandes, proponer un plan y esperar confirmación.

@@ -1,0 +1,128 @@
+/* Armazón del portal: barra lateral fija + contenido. */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+.side {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 18px;
+}
+
+.logoImg {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--brand-ink);
+  line-height: 1.2;
+}
+
+.logoText span {
+  display: block;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sideFooter {
+  margin-top: auto;
+  padding: 14px 10px 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.userEmail {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btnLogout {
+  margin-top: 4px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: left;
+}
+
+.btnLogout:hover {
+  color: var(--alert);
+  border-color: var(--alert);
+}
+
+.main {
+  padding: 32px clamp(16px, 4vw, 48px) 60px;
+  max-width: var(--content-max);
+  width: 100%;
+}
+
+@media (max-width: 820px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .logo {
+    display: none;
+  }
+
+  .sideFooter {
+    margin-top: 0;
+    margin-left: auto;
+    padding: 0 0 0 10px;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .userName,
+  .userEmail {
+    display: none;
+  }
+
+  .btnLogout {
+    margin-top: 0;
+    white-space: nowrap;
+  }
+}

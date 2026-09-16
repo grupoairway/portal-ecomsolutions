@@ -1,54 +1,62 @@
 .item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-muted);
+  gap: 8px;
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  color: var(--ink);
+  font-size: 15px;
   text-decoration: none;
-  transition: all 0.15s;
-  white-space: nowrap;
 }
 
 .item:hover {
-  color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--brand-soft);
 }
 
-.itemActive {
-  color: var(--color-blue);
-  background: var(--color-blue-light);
-  font-weight: 600;
-}
-
+.itemActive,
 .itemActive:hover {
-  color: var(--color-blue-dark);
-  background: var(--color-blue-light);
+  background: var(--brand);
+  color: #fff;
 }
 
-.icon {
-  font-size: 14px;
+.count {
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--alert);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0 7px;
   flex-shrink: 0;
 }
 
-.label {
-  line-height: 1;
+.ext {
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  background: #dc2626;
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 9px;
-  padding: 0 4px;
-  line-height: 1;
-  flex-shrink: 0;
+.itemActive .ext {
+  color: #fff;
+}
+
+.sep {
+  height: 1px;
+  background: var(--line);
+  margin: 10px 6px;
+}
+
+@media (max-width: 820px) {
+  .item {
+    white-space: nowrap;
+  }
+
+  .sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
 }

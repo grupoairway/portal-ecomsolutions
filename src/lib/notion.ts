@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { Client } from '@notionhq/client';
 export type { MetricasInforme, InformeNotion } from './informe-tipos';
 export { parseMetricas } from './informe-tipos';
@@ -337,3 +338,36 @@ export async function getDocumentosCliente(
     };
   });
 }
+
+export interface PerfilCliente {
+  nombre: string;
+  tipoCliente: string | null;
+  regimenIrpf: string | null;
+  regimenIva: string | null;
+  plan: string | null;
+  carpetaDrive: string | null;
+}
+
+/**
+ * Datos de cabecera del cliente para la portada. Se lee la ficha por id, no
+ * por email, porque la sesion ya trae el id de Notion.
+ */
+export const getPerfilCliente = cache(async function getPerfilCliente(
+  clienteId: string,
+): Promise<PerfilCliente | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const page = (await notion.pages.retrieve({ page_id: clienteId })) as any;
+    const props = page.properties ?? {};
+    return {
+      nombre: props['Nombre']?.title?.[0]?.plain_text ?? '',
+      tipoCliente: props['Tipo de cliente']?.select?.name ?? null,
+      regimenIrpf: props['Régimen IRPF']?.select?.name ?? null,
+      regimenIva: props['Régimen IVA']?.select?.name ?? null,
+      plan: props['Plan contratado']?.select?.name ?? null,
+      carpetaDrive: props['Carpeta Drive']?.url ?? null,
+    };
+  } catch {
+    return null;
+  }
+});

@@ -1,84 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@notionhq/client';
-import { getSession } from '@/lib/session-server';
-import { sendConfirmacionGestor } from '@/lib/mailer';
+import { NextResponse } from 'next/server';
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
-
-const FORMA_PAGO: Record<string, string> = {
-  presentar: 'Voluntario',
-  domiciliar: 'Domiciliación',
-  aplazar: 'Aplazamiento',
-  devolucion_cuenta: 'Devolución en cuenta',
-  compensar: 'Compensar próximas presentaciones',
-};
-
-const ACCION_LABEL: Record<string, string> = {
-  presentar: 'Confirmar presentación (pago voluntario)',
-  domiciliar: 'Domiciliar pago',
-  aplazar: 'Solicitar aplazamiento',
-  devolucion_cuenta: 'Confirmar y solicitar devolución en cuenta',
-  compensar: 'Compensar en próximas declaraciones',
-};
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  console.log('=== CONFIRMAR MODELO ===')
-  console.log('SMTP_PASSWORD exists:', !!process.env.SMTP_PASSWORD)
-  console.log('Notion page id:', params.id)
-
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
-
-  const body = await req.json() as { accion: string; iban?: string; motivo?: string };
-  const { accion, iban, motivo } = body;
-  console.log('Acción recibida:', accion)
-
-  const formaPago = FORMA_PAGO[accion];
-  if (!formaPago) return NextResponse.json({ error: 'Acción inválida' }, { status: 400 });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const page = await notion.pages.retrieve({ page_id: params.id }) as any;
-  const props = page.properties;
-
-  const titulo: string = props['Título']?.title?.[0]?.plain_text ?? 'Modelo';
-  // Extract modelo number and periodo for the email subject
-  const modeloNum = titulo.match(/\b(\d{3})\b/)?.[1];
-  const modeloNombre = props['Modelo']?.select?.name ?? props['Modelo']?.rich_text?.[0]?.plain_text ?? (modeloNum ? `Modelo ${modeloNum}` : titulo);
-  const periodoFromTitle = titulo.match(/(\dT\s*\d{4}|\bAnual\s+\d{4})/i)?.[1]?.trim() ?? '';
-  const periodo = props['Período']?.select?.name ?? props['Período']?.rich_text?.[0]?.plain_text ?? props['Periodo']?.select?.name ?? periodoFromTitle;
-
-  console.log('Título:', titulo, '| Modelo:', modeloNombre, '| Período:', periodo)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateProps: Record<string, any> = {
-    'Confirmación cliente': { select: { name: 'Confirmado' } },
-    'Forma pago/cobro': { select: { name: formaPago } },
-    Estado: { select: { name: 'Confirmado' } },
-  };
-  if (iban) updateProps['IBAN'] = { rich_text: [{ text: { content: iban } }] };
-  if (motivo) updateProps['Notas cliente'] = { rich_text: [{ text: { content: motivo } }] };
-
-  await notion.pages.update({ page_id: params.id, properties: updateProps });
-  console.log('Notion actualizado correctamente')
-
-  console.log('Enviando email a: info@ecomsolutions.es')
-  try {
-    await sendConfirmacionGestor({
-      clienteNombre: session.nombre,
-      modeloNombre,
-      periodo,
-      accionLabel: ACCION_LABEL[accion] ?? accion,
-      iban,
-      motivo,
-    });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (emailError: any) {
-    console.error('ERROR email completo:', emailError.message, emailError.code, emailError.response)
-    // No cambiar el formato de respuesta - siempre devolver success true
-  }
-
-  return NextResponse.json({ success: true });
+/**
+ * ENDPOINT DESACTIVADO.
+ *
+ * Escribía en "Forma pago/cobro" valores que no son opciones del select en
+ * Notion ("Voluntario", "Compensar próximas presentaciones"), y Notion los
+ * habría dado de alta como opciones nuevas, ensuciando la base. Tampoco
+ * guardaba la conformidad con fecha y hora, que es prueba ante el cliente.
+ *
+ * Lo sustituye POST /api/borradores/[id]/conformidad, que valida la forma de
+ * pago contra las opciones reales y comprueba que el vencimiento es del
+ * cliente de la sesión.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        'Esta forma de confirmar ya no está disponible. Entra en el portal y da tu conformidad desde "Borradores y justificantes".',
+      sustituidoPor: '/api/borradores/[id]/conformidad',
+    },
+    { status: 410 },
+  );
 }
