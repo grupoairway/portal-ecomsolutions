@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { asuntoGestor } from './cliente-prueba'
 
 function createTransporter() {
   return nodemailer.createTransport({
@@ -42,6 +43,8 @@ export async function sendMagicLink(to: string, nombre: string, magicUrl: string
 
 interface ConfirmacionParams {
   clienteNombre: string;
+  /** Sirve para marcar con [PRUEBA] los avisos del cliente de pruebas. */
+  clienteEmail?: string;
   modeloNombre: string;
   periodo: string;
   accionLabel: string;
@@ -51,19 +54,19 @@ interface ConfirmacionParams {
 }
 
 export async function sendConfirmacionGestor(params: ConfirmacionParams) {
-  const { clienteNombre, modeloNombre, periodo, accionLabel, gestorEmail, iban, motivo } = params
+  const { clienteNombre, clienteEmail, modeloNombre, periodo, accionLabel, gestorEmail, iban, motivo } = params
   const to = gestorEmail || 'info@ecomsolutions.es'
   const transporter = createTransporter()
 
   console.log('=== CONFIRMAR MODELO - sendConfirmacionGestor ===')
   console.log('SMTP_PASSWORD exists:', !!process.env.SMTP_PASSWORD)
   console.log('Enviando email a:', to)
-  console.log('Subject:', `[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`)
+  console.log('Subject:', asuntoGestor(`[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`, { nombre: clienteNombre, email: clienteEmail }))
 
   const result = await transporter.sendMail({
     from: 'EcomSolutions <noreply@ecomsolutions.es>',
     to,
-    subject: `[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`,
+    subject: asuntoGestor(`[Portal EcomSolutions] ✅ ${clienteNombre} ha confirmado ${modeloNombre} · ${periodo}`, { nombre: clienteNombre, email: clienteEmail }),
     html: `
       <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
         <h2 style="color:#0f172a;margin-bottom:20px;">✅ Confirmación de modelo fiscal</h2>
@@ -99,7 +102,7 @@ export async function sendDocumentacionCliente(params: DocumentacionClienteParam
   const result = await transporter.sendMail({
     from: 'EcomSolutions <noreply@ecomsolutions.es>',
     to: 'grupoairway@gmail.com',
-    subject: `[Portal EcomSolutions] 📎 ${clienteNombre} ha subido documentación · ${tipoDocumento} · ${periodo}`,
+    subject: asuntoGestor(`[Portal EcomSolutions] 📎 ${clienteNombre} ha subido documentación · ${tipoDocumento} · ${periodo}`, { nombre: clienteNombre, email: clienteEmail }),
     html: `
       <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
         <h2 style="color:#0f172a;margin-bottom:20px;">📎 Nueva documentación recibida</h2>
@@ -123,4 +126,42 @@ export async function sendDocumentacionCliente(params: DocumentacionClienteParam
   });
 
   return result;
+}
+
+interface InvitacionQuantumParams {
+  clienteNombre: string;
+  clienteEmail: string;
+}
+
+/**
+ * Aviso al gestor de que el cliente ha perdido su acceso a Quantum y quiere
+ * que le reenvíen la invitación. El portal no habla con Quantum: solo avisa.
+ */
+export async function sendInvitacionQuantum(params: InvitacionQuantumParams) {
+  const { clienteNombre, clienteEmail } = params
+  const transporter = createTransporter()
+
+  const result = await transporter.sendMail({
+    from: 'EcomSolutions <noreply@ecomsolutions.es>',
+    to: 'info@ecomsolutions.es',
+    replyTo: clienteEmail,
+    subject: asuntoGestor(`Reenviar invitación Quantum – ${clienteNombre}`, {
+      nombre: clienteNombre,
+      email: clienteEmail,
+    }),
+    html: `
+      <div style="font-family:Figtree,Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px 20px;">
+        <h2 style="color:#16212c;margin-bottom:20px;">Reenviar invitación a Quantum</h2>
+        <p style="color:#5e6e7e;">Este cliente ha pedido desde el portal que le reenviéis su invitación de acceso a Quantum.</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;width:120px;">Cliente</td><td style="padding:8px 0;font-weight:600;">${clienteNombre}</td></tr>
+          <tr><td style="padding:8px 0;color:#5e6e7e;font-size:14px;">Correo</td><td style="padding:8px 0;font-weight:600;">${clienteEmail}</td></tr>
+        </table>
+        <p style="color:#5e6e7e;font-size:13px;margin-top:20px;">Le hemos dicho que la recibirá en 24 horas.</p>
+      </div>
+    `,
+  })
+
+  console.log('Invitación Quantum solicitada. MessageId:', result.messageId)
+  return result
 }

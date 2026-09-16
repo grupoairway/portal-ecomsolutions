@@ -136,6 +136,7 @@ export async function POST(
   try {
     await sendConfirmacionGestor({
       clienteNombre: session.nombre,
+      clienteEmail: session.email,
       modeloNombre: `Modelo ${vencimiento.modelo} · ${vencimiento.modeloDescripcion}`,
       periodo: vencimiento.periodo,
       accionLabel: formaPago

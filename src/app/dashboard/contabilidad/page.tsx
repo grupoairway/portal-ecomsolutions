@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { requireSession } from '@/lib/session-server';
+import BotonInvitacion from './BotonInvitacion';
 
 /**
  * Quantum es donde vive la facturación y la contabilidad; el portal solo
@@ -66,13 +66,9 @@ export default async function ContabilidadPage() {
         <section className="panel">
           <h2 className="panel-title">¿Olvidaste tu acceso?</h2>
           <p style={{ margin: '0 0 12px', color: 'var(--muted)' }}>
-            Escríbenos y te reenviamos la invitación a tu correo.
+            Te reenviamos la invitación a tu correo.
           </p>
-          <div className="actions">
-            <Link href="/dashboard/consultas" className="btn btn-ghost">
-              Pedir la invitación
-            </Link>
-          </div>
+          <BotonInvitacion />
         </section>
       </div>
     </>

@@ -34,5 +34,6 @@ export const config = {
     '/api/upload/:path*',
     '/api/modelos/:path*',
     '/api/borradores/:path*',
+    '/api/quantum/:path*',
   ],
 };
