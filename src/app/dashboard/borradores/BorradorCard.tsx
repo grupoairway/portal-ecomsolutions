@@ -6,17 +6,27 @@ import { useRouter } from 'next/navigation';
 // Del módulo puro, no de vencimientos.ts: este componente es de cliente y no
 // debe arrastrar el SDK de Notion al navegador.
 import {
+  avisoInformativo,
+  AYUDA_APLAZAMIENTO,
   AYUDA_DEVOLVER_O_COMPENSAR,
   calcularPlazoConformidad,
+  destinoNegativo,
   etiquetaModelo,
   fechaLimitePresentacion,
+  FORMA_PAGO_APLAZAMIENTO,
   FORMA_PAGO_DOMICILIACION,
-  destinoNegativo,
   importeConSigno,
+  maxCuotas,
+  mesesPrimeraCuota,
   opcionesFormaPago,
-  textoResultadoNegativo,
+  requiereRevision,
+  sinImporteDestacado,
+  TEXTO_REVISION,
+  textoResultado,
+  validarAplazamiento,
   type Vencimiento,
 } from '@/lib/vencimientos-tipos';
+import { nombreMes } from '@/lib/cierres-tipos';
 import { euros, fechaHoraLarga, fechaLarga } from '@/lib/fechas';
 import Seguimiento from '@/components/Seguimiento';
 import BloquePago from './BloquePago';
@@ -32,8 +42,9 @@ export default function BorradorCard({
 }) {
   const router = useRouter();
   const opciones = opcionesFormaPago(vencimiento);
-  // Explicación de qué pasa con el dinero cuando el modelo sale a su favor.
-  const explicacionNegativo = textoResultadoNegativo(vencimiento);
+  // Lo que conviene revisar en esta declaración concreta, si es de las que
+  // Hacienda cruza con datos de terceros.
+  const avisoModelo = avisoInformativo(vencimiento);
 
   const [formaPago, setFormaPago] = useState(
     vencimiento.formaPago ?? opciones[0]?.valor ?? '',
@@ -43,10 +54,33 @@ export default function BorradorCard({
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Aplazamiento: el tope de cuotas depende de la forma jurídica del cliente.
+  const tope = maxCuotas(vencimiento.tipoCliente);
+  const opcionesCuotas = Array.from({ length: tope - 1 }, (_, i) => i + 2);
+  const mesesDisponibles = mesesPrimeraCuota();
+  const [cuotas, setCuotas] = useState(Math.min(3, tope));
+  const [primeraCuota, setPrimeraCuota] = useState(mesesDisponibles[0]);
+  const [motivo, setMotivo] = useState('');
+
+  // Informativas y modelos a cero.
+  const [revisado, setRevisado] = useState(false);
+
   const yaConforme = Boolean(vencimiento.conformidadFecha);
   const opcionElegida = opciones.find((o) => o.valor === formaPago);
   const pideIban = opcionElegida?.pideIban ?? false;
   const avisoOpcion = opcionElegida?.aviso;
+  const aplazando = formaPago === FORMA_PAGO_APLAZAMIENTO;
+
+  /*
+   * El botón se apaga cuando falta algo obligatorio. La comprobación del
+   * aplazamiento es la misma función que usa el endpoint, así que la pantalla
+   * no puede permitir enviar algo que el servidor va a rechazar.
+   */
+  const errorAplazamiento = aplazando
+    ? validarAplazamiento(vencimiento, { cuotas, primeraCuota, motivo })
+    : null;
+  const faltaRevisar = requiereRevision(vencimiento) && !revisado;
+  const puedeEnviar = !faltaRevisar && errorAplazamiento === null;
 
   /*
    * Lo que se le recuerda después de dar la conformidad. "Forma de pago:
@@ -57,9 +91,15 @@ export default function BorradorCard({
     ? destinoNegativo(vencimiento) === 'devolver'
       ? ' Pediremos a Hacienda que te lo ingrese en tu cuenta.'
       : ' El saldo se compensará en tus próximas declaraciones.'
-    : vencimiento.formaPago
-      ? ` Forma de pago: ${vencimiento.formaPago}.`
-      : '';
+    : vencimiento.formaPago === FORMA_PAGO_APLAZAMIENTO
+      ? ` Pediremos el aplazamiento en ${vencimiento.aplazamientoCuotas ?? ''} cuotas${
+          vencimiento.aplazamientoPrimeraCuota
+            ? `, desde ${nombreMes(vencimiento.aplazamientoPrimeraCuota.slice(0, 7))}`
+            : ''
+        }. La respuesta la da Hacienda.`
+      : vencimiento.formaPago
+        ? ` Forma de pago: ${vencimiento.formaPago}.`
+        : '';
 
   // Domiciliar adelanta la presentación al día 15, así que también adelanta el
   // plazo de conformidad. Se recalcula en vivo al marcar la opción.
@@ -92,6 +132,8 @@ export default function BorradorCard({
             formaPago: formaPago || undefined,
             iban: pideIban ? iban : undefined,
             comentario: comentario || undefined,
+            revisado: requiereRevision(vencimiento) ? revisado : undefined,
+            ...(aplazando ? { cuotas, primeraCuota, motivo } : {}),
           }),
         },
       );
@@ -126,20 +168,27 @@ export default function BorradorCard({
               : ''}
           </small>
 
-          {vencimiento.importe != null && (
-            <>
-              <div className="bignum" style={{ marginTop: 12 }}>
-                {euros(importeConSigno(vencimiento))}
-              </div>
-              <div style={{ color: 'var(--muted)' }}>
-                {explicacionNegativo ?? vencimiento.resultado ?? 'Resultado'}
-                {/* El cargo solo se anuncia cuando el dinero sale de su
-                    cuenta; si el modelo sale a su favor, no hay cargo. */}
-                {!vencimiento.esNegativo && vencimiento.fechaCargo
-                  ? ` · Cargo en tu cuenta el ${fechaLarga(vencimiento.fechaCargo)}`
-                  : ''}
-              </div>
-            </>
+          {/* Una informativa o un modelo a cero no llevan importe a tamaño
+              titular: no hay ninguna cifra que el cliente deba mirar. */}
+          {!sinImporteDestacado(vencimiento) && vencimiento.importe != null && (
+            <div className="bignum" style={{ marginTop: 12 }}>
+              {euros(importeConSigno(vencimiento))}
+            </div>
+          )}
+
+          <div style={{ color: 'var(--muted)', marginTop: 6 }}>
+            {textoResultado(vencimiento)}
+            {/* El cargo solo se anuncia cuando el dinero sale de su cuenta;
+                si el modelo sale a su favor, no hay cargo. */}
+            {!vencimiento.esNegativo && vencimiento.fechaCargo
+              ? ` · Cargo en tu cuenta el ${fechaLarga(vencimiento.fechaCargo)}`
+              : ''}
+          </div>
+
+          {avisoModelo && (
+            <p className="note" style={{ marginTop: 10 }}>
+              {avisoModelo}
+            </p>
           )}
         </div>
 
@@ -227,6 +276,64 @@ export default function BorradorCard({
                 </p>
               )}
 
+              {/* Lo que hay que saber de la opción marcada, sea cual sea. */}
+              {avisoOpcion && (
+                <p className="note" style={{ marginTop: 10 }}>
+                  {avisoOpcion}
+                </p>
+              )}
+
+              {aplazando && (
+                <>
+                  <p className="note" style={{ marginTop: 10 }}>
+                    {AYUDA_APLAZAMIENTO}
+                  </p>
+
+                  <label className={styles.campo}>
+                    <span>¿En cuántas cuotas?</span>
+                    <select
+                      value={cuotas}
+                      onChange={(e) => setCuotas(Number(e.target.value))}
+                    >
+                      {opcionesCuotas.map((n) => (
+                        <option key={n} value={n}>
+                          {n} cuotas
+                        </option>
+                      ))}
+                    </select>
+                    <small style={{ color: 'var(--muted)' }}>
+                      El máximo para tu tipo de actividad son {tope} cuotas.
+                    </small>
+                  </label>
+
+                  <label className={styles.campo}>
+                    <span>¿Cuándo quieres pagar la primera?</span>
+                    <select
+                      value={primeraCuota}
+                      onChange={(e) => setPrimeraCuota(e.target.value)}
+                    >
+                      {mesesDisponibles.map((mes) => (
+                        <option key={mes} value={mes}>
+                          {nombreMes(mes)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className={styles.campo}>
+                    <span>¿Por qué necesitas aplazarlo?</span>
+                    <textarea
+                      value={motivo}
+                      onChange={(e) => setMotivo(e.target.value)}
+                      placeholder="Por ejemplo: un cliente importante me ha pagado con dos meses de retraso"
+                    />
+                    <small style={{ color: 'var(--muted)' }}>
+                      Hacienda necesita el motivo para estudiar la solicitud.
+                    </small>
+                  </label>
+                </>
+              )}
+
               {pideIban && (
                 <label className={styles.campo}>
                   <span>Cuenta bancaria (IBAN)</span>
@@ -238,9 +345,6 @@ export default function BorradorCard({
                     inputMode="text"
                     autoComplete="off"
                   />
-                  {avisoOpcion && (
-                    <small style={{ color: 'var(--muted)' }}>{avisoOpcion}</small>
-                  )}
                   {!vencimiento.iban && ibanCliente && iban === ibanCliente && (
                     <small style={{ color: 'var(--muted)' }}>
                       Es la cuenta que tenemos en tu ficha. Cámbiala si quieres
@@ -250,6 +354,21 @@ export default function BorradorCard({
                 </label>
               )}
             </fieldset>
+          )}
+
+          {/* Informativas y modelos a cero: nada que elegir, pero sí que
+              revisar. La casilla es lo que sostiene la conformidad. */}
+          {requiereRevision(vencimiento) && (
+            <div className="checks" style={{ marginBottom: 14 }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={revisado}
+                  onChange={(e) => setRevisado(e.target.checked)}
+                />
+                {TEXTO_REVISION}
+              </label>
+            </div>
           )}
 
           <label className={styles.campo}>
@@ -268,7 +387,7 @@ export default function BorradorCard({
               type="button"
               className="btn"
               onClick={darConformidad}
-              disabled={enviando}
+              disabled={enviando || !puedeEnviar}
             >
               {enviando ? 'Guardando…' : 'Dar conformidad'}
             </button>

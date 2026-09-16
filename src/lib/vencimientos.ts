@@ -31,6 +31,7 @@ function contextoDe(perfil: PerfilCliente | null): ContextoCliente {
     clienteConCertificado: perfil?.certificadoDigital ?? false,
     redeme: perfil?.redeme ?? false,
     ivaMensual: perfil?.periodicidadIva === 'Mensual',
+    tipoCliente: perfil?.tipoCliente ?? null,
   };
 }
 

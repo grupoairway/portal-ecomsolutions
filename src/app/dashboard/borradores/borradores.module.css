@@ -45,6 +45,7 @@
 }
 
 .campo input,
+.campo select,
 .campo textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -53,6 +54,11 @@
   color: var(--ink);
   padding: 10px;
   font: inherit;
+}
+
+.campo small {
+  display: block;
+  margin-top: 6px;
 }
 
 .campo textarea {

@@ -51,10 +51,17 @@ interface ConfirmacionParams {
   gestorEmail?: string;
   iban?: string;
   motivo?: string;
+  /** Datos del aplazamiento, cuando el cliente ha pedido pagar a plazos. */
+  aplazamiento?: {
+    cuotas: number;
+    /** "Octubre 2026". */
+    primeraCuota: string;
+    motivo: string;
+  };
 }
 
 export async function sendConfirmacionGestor(params: ConfirmacionParams) {
-  const { clienteNombre, clienteEmail, modeloNombre, periodo, accionLabel, gestorEmail, iban, motivo } = params
+  const { clienteNombre, clienteEmail, modeloNombre, periodo, accionLabel, gestorEmail, iban, motivo, aplazamiento } = params
   const to = gestorEmail || 'info@ecomsolutions.es'
   const transporter = createTransporter()
 
@@ -76,8 +83,13 @@ export async function sendConfirmacionGestor(params: ConfirmacionParams) {
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Período</td><td style="padding:8px 0;font-weight:600;">${periodo}</td></tr>
           <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Acción</td><td style="padding:8px 0;font-weight:600;">${accionLabel}</td></tr>
           ${iban ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">IBAN</td><td style="padding:8px 0;font-weight:600;">${iban}</td></tr>` : ''}
-          ${motivo ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Motivo</td><td style="padding:8px 0;font-weight:600;">${motivo}</td></tr>` : ''}
+          ${aplazamiento ? `
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Cuotas</td><td style="padding:8px 0;font-weight:600;">${aplazamiento.cuotas}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Primera cuota</td><td style="padding:8px 0;font-weight:600;">${aplazamiento.primeraCuota}</td></tr>
+          <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;vertical-align:top;">Motivo del aplazamiento</td><td style="padding:8px 0;">${aplazamiento.motivo}</td></tr>` : ''}
+          ${motivo ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Comentario</td><td style="padding:8px 0;font-weight:600;">${motivo}</td></tr>` : ''}
         </table>
+        ${aplazamiento ? '<p style="color:#6b7280;font-size:13px;margin-top:20px;">Hay que solicitar el aplazamiento en la sede de la AEAT al presentar el modelo.</p>' : ''}
       </div>
     `,
   })

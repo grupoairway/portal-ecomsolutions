@@ -23,6 +23,7 @@ import {
   soloFecha,
   sumarDias,
 } from './fechas';
+import { mesActual, nombreMes, sumarMeses } from './cierres-tipos';
 
 export type EstadoPaso = 'hecho' | 'ahora' | 'pendiente';
 
@@ -35,7 +36,9 @@ export type ClavePaso =
   | 'presentacion'
   | 'cargo'
   /** Solo cuando Hacienda tiene que devolver dinero. */
-  | 'devolucion';
+  | 'devolucion'
+  /** Solo cuando el pago se ha pedido a plazos. */
+  | 'aplazamiento';
 
 export interface Paso {
   clave: ClavePaso;
@@ -97,11 +100,19 @@ export interface Vencimiento {
   confirmacionCliente: string | null;
   notasCliente: string | null;
 
+  /* --- Aplazamiento del pago --- */
+  aplazamientoCuotas: number | null;
+  /** Día 1 del mes en que se paga la primera cuota. */
+  aplazamientoPrimeraCuota: string | null;
+  aplazamientoMotivo: string | null;
+
   /* --- Datos del cliente que cambian las opciones de cobro --- */
   /** Inscrito en el registro de devolución mensual del IVA. */
   redeme: boolean;
   /** "Periodicidad IVA" = Mensual en su ficha. */
   ivaMensual: boolean;
+  /** "Tipo de cliente": decide cuántas cuotas admite un aplazamiento. */
+  tipoCliente: string | null;
   /** El modelo sale a favor del cliente: a devolver o a compensar. */
   esNegativo: boolean;
 
@@ -157,6 +168,8 @@ export const FORMA_COBRO_COMPENSAR = 'Compensar próximas';
 export const REQUIEREN_IBAN: string[] = [
   FORMA_PAGO_DOMICILIACION,
   FORMA_COBRO_DEVOLUCION,
+  // Las cuotas del aplazamiento las carga Hacienda en una cuenta.
+  FORMA_PAGO_APLAZAMIENTO,
 ];
 
 /**
@@ -197,8 +210,29 @@ export type DatosCobro = Pick<
   | 'formaPago'
   | 'redeme'
   | 'ivaMensual'
+  | 'tipoCliente'
   | 'clienteConCertificado'
 >;
+
+/**
+ * Modelos que solo informan de lo que se ha retenido a terceros. El dinero no
+ * es del cliente: lo ha retenido a sus trabajadores, a sus profesionales o a
+ * su casero, así que Hacienda no deja aplazar su ingreso.
+ */
+const MODELOS_RETENCIONES = new Set(['111', '115', '123', '180', '190']);
+
+/** Formas societarias: Hacienda les admite la mitad de cuotas. */
+const TIPOS_SOCIEDAD = new Set(['SL', 'SLU', 'Comunidad de Bienes']);
+
+/** Cuotas máximas de un aplazamiento: 12 para autónomos, 6 para sociedades. */
+export function maxCuotas(tipoCliente: string | null | undefined): number {
+  return TIPOS_SOCIEDAD.has((tipoCliente ?? '').trim()) ? 6 : 12;
+}
+
+/** Un modelo de retenciones, que no se puede aplazar. */
+export function esRetencion(modelo: string): boolean {
+  return MODELOS_RETENCIONES.has(modelo);
+}
 
 export interface OpcionCobro {
   /** Opción exacta del select "Forma pago/cobro" de Notion. */
@@ -261,22 +295,146 @@ export function opcionesFormaPago(v: DatosCobro): OpcionCobro[] {
   }
 
   if (v.resultado === 'A pagar') {
-    return [
+    const opciones: OpcionCobro[] = [
       {
         valor: FORMA_PAGO_DOMICILIACION,
         etiqueta: 'Domiciliar el pago en mi cuenta',
         pideIban: true,
       },
       { valor: FORMA_PAGO_NRC, etiqueta: 'Pagar yo desde mi banco', pideIban: false },
-      {
+    ];
+
+    // Las retenciones no se aplazan: ese dinero no es suyo, se lo ha retenido
+    // a otros y Hacienda no admite fraccionar su ingreso.
+    if (!esRetencion(v.modelo)) {
+      opciones.push({
         valor: FORMA_PAGO_APLAZAMIENTO,
         etiqueta: 'Solicitar un aplazamiento',
-        pideIban: false,
-      },
-    ];
+        pideIban: true,
+        aviso:
+          v.modelo === '303'
+            ? 'El IVA solo puede aplazarse si acreditas que no has cobrado el IVA de tus facturas. Explícalo en el motivo.'
+            : undefined,
+      });
+    }
+
+    return opciones;
   }
 
   return [];
+}
+
+/* -----------------------------------------------------------------
+ * Aplazamiento
+ * ----------------------------------------------------------------- */
+
+export const AYUDA_APLAZAMIENTO =
+  'Hacienda carga las cuotas el día 5 o 20 de cada mes. La fecha final la ' +
+  'fija Hacienda al conceder el aplazamiento.';
+
+export interface DatosAplazamiento {
+  cuotas?: number | null;
+  /** "YYYY-MM" o "YYYY-MM-01". */
+  primeraCuota?: string | null;
+  motivo?: string | null;
+}
+
+/**
+ * Los meses en los que puede empezar a pagar: los seis siguientes al actual.
+ * El mes en curso no entra porque el aplazamiento todavía tiene que
+ * concederlo Hacienda.
+ */
+export function mesesPrimeraCuota(referencia: string = mesActual()): string[] {
+  return [1, 2, 3, 4, 5, 6].map((n) => sumarMeses(referencia, n));
+}
+
+/** Deja "2026-10" o "2026-10-01" en "2026-10". */
+function mesDe(valor: string | null | undefined): string | null {
+  if (!valor) return null;
+  const m = valor.slice(0, 7);
+  return /^\d{4}-\d{2}$/.test(m) ? m : null;
+}
+
+/**
+ * Comprueba los datos de un aplazamiento. Devuelve el error en cristiano, o
+ * null si está todo bien. La usan el formulario y el endpoint: así no puede
+ * colarse por la API algo que la pantalla no dejaría enviar.
+ */
+export function validarAplazamiento(
+  v: DatosCobro,
+  datos: DatosAplazamiento,
+  referencia: string = mesActual(),
+): string | null {
+  if (esRetencion(v.modelo)) {
+    return `El modelo ${v.modelo} es de retenciones y no se puede aplazar`;
+  }
+
+  const tope = maxCuotas(v.tipoCliente);
+  const cuotas = datos.cuotas;
+  if (cuotas == null || !Number.isInteger(cuotas) || cuotas < 2 || cuotas > tope) {
+    return `El número de cuotas tiene que estar entre 2 y ${tope}`;
+  }
+
+  const mes = mesDe(datos.primeraCuota);
+  if (!mes || !mesesPrimeraCuota(referencia).includes(mes)) {
+    return 'La primera cuota tiene que ser en alguno de los seis próximos meses';
+  }
+
+  if (!datos.motivo?.trim()) {
+    return 'Necesitamos que nos expliques el motivo del aplazamiento';
+  }
+
+  return null;
+}
+
+/* -----------------------------------------------------------------
+ * Informativos y resultado cero
+ * ----------------------------------------------------------------- */
+
+/** Declaración que solo informa: no hay nada que pagar ni que cobrar. */
+export function esInformativo(v: DatosCobro): boolean {
+  return v.resultado === 'Informativo';
+}
+
+/** Sale a cero: se presenta, pero no hay movimiento de dinero. */
+export function esCero(v: DatosCobro): boolean {
+  if (esInformativo(v) || esResultadoNegativo(v.resultado, v.importe)) return false;
+  return v.resultado === 'Cero' || v.importe === 0;
+}
+
+/**
+ * Sin importe grande en la tarjeta: enseñar "0,00 €" a tamaño titular en una
+ * informativa solo confunde.
+ */
+export function sinImporteDestacado(v: DatosCobro): boolean {
+  return esInformativo(v) || esCero(v);
+}
+
+export const TEXTO_REVISION = 'He revisado los datos del borrador y son correctos';
+
+/**
+ * Estas declaraciones no tienen ninguna decisión que tomar, así que la
+ * conformidad se apoya en una casilla: que confirme que ha mirado los datos.
+ */
+export function requiereRevision(v: DatosCobro): boolean {
+  return esInformativo(v) || esCero(v);
+}
+
+/** Lo que conviene que revise en cada informativa antes de confirmarla. */
+const AVISOS_INFORMATIVOS: Record<string, string> = {
+  '347':
+    'Comprueba que los importes coinciden con los de tus clientes y proveedores: Hacienda cruza los datos de las dos partes.',
+  '349':
+    'Comprueba que los NIF intracomunitarios de tus clientes y proveedores son correctos y están en vigor.',
+  '390': 'Este resumen debe coincidir con la suma de tus modelos 303 del año.',
+  '180':
+    'Comprueba que los datos de tus arrendadores y los importes retenidos son correctos.',
+  '190':
+    'Comprueba que los datos de los perceptores y los importes retenidos son correctos.',
+};
+
+export function avisoInformativo(v: DatosCobro): string | null {
+  return AVISOS_INFORMATIVOS[v.modelo] ?? null;
 }
 
 /**
@@ -330,13 +488,29 @@ export function importeConSigno(v: DatosCobro): number | null {
     : v.importe;
 }
 
-/** "-450,25 € a compensar" para listados y calendario. */
+/**
+ * "-450,25 € a compensar" para listados y calendario. Una informativa no
+ * lleva importe: lo que tenga en ese campo no es dinero que deba nadie.
+ */
 export function etiquetaImporte(v: DatosCobro): string | null {
+  if (esInformativo(v)) return 'Informativo';
   const importe = importeConSigno(v);
   if (importe == null) return null;
   const destino = destinoNegativo(v);
   if (!destino) return euros(importe);
   return `${euros(importe)} a ${destino === 'devolver' ? 'devolver' : 'compensar'}`;
+}
+
+/**
+ * La línea que explica el resultado en la tarjeta del borrador, sea cual sea:
+ * informativa, cero, a favor del cliente o a pagar.
+ */
+export function textoResultado(v: DatosCobro): string {
+  if (esInformativo(v)) {
+    return 'Declaración informativa · No hay nada que pagar';
+  }
+  if (esCero(v)) return `Resultado: ${euros(0)}`;
+  return textoResultadoNegativo(v) ?? v.resultado ?? 'Resultado';
 }
 
 /**
@@ -471,6 +645,7 @@ export const ORDEN_PASOS: ClavePaso[] = [
   'presentacion',
   'cargo',
   'devolucion',
+  'aplazamiento',
 ];
 
 /**
@@ -496,6 +671,8 @@ function calcularProgreso(v: VencimientoBase): Record<ClavePaso, boolean> {
     // "Fecha cargo" guarda el movimiento en los dos sentidos: lo que sale de
     // su cuenta y lo que Hacienda le ingresa.
     devolucion: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
+    // El aplazamiento no está cerrado hasta que Hacienda empieza a cobrar.
+    aplazamiento: !!v.fechaCargo && soloFecha(v.fechaCargo)! <= h,
   };
 
   for (let i = ORDEN_PASOS.length - 2; i >= 0; i--) {
@@ -518,6 +695,26 @@ function tieneCargo(v: VencimientoBase, presentado: boolean): boolean {
   return !!v.fechaCargo || (v.resultado === 'A pagar' && !presentado);
 }
 
+/**
+ * "Solicitado · 6 cuotas desde Octubre 2026". La fecha final no se promete:
+ * la fija Hacienda al conceder el aplazamiento.
+ */
+function detalleAplazamiento(v: VencimientoBase): string {
+  const desde = v.aplazamientoPrimeraCuota
+    ? nombreMes(soloFecha(v.aplazamientoPrimeraCuota)!.slice(0, 7))
+    : null;
+
+  if (v.fechaCargo) {
+    return v.aplazamientoCuotas
+      ? `Concedido · ${v.aplazamientoCuotas} cuotas`
+      : 'Concedido';
+  }
+  if (v.aplazamientoCuotas && desde) {
+    return `Solicitado · ${v.aplazamientoCuotas} cuotas desde ${desde}`;
+  }
+  return 'Solicitado';
+}
+
 function construirPasos(v: VencimientoBase): Paso[] {
   const presentado =
     !!v.fechaPresentacion || v.estado === 'Presentado' || v.estado === 'Domiciliado';
@@ -532,6 +729,8 @@ function construirPasos(v: VencimientoBase): Paso[] {
    * declaración. Solo si pide la devolución hay un paso más que esperar.
    */
   const hayDevolucion = destinoNegativo(v) === 'devolver';
+  // Pedido a plazos: el último paso cuenta el aplazamiento, no un cargo único.
+  const hayAplazamiento = v.formaPago === FORMA_PAGO_APLAZAMIENTO;
 
   function detalleConformidad(): string {
     if (conformidadDada) return `Dada el ${fechaHoraLarga(v.conformidadFecha)}`;
@@ -599,6 +798,11 @@ function construirPasos(v: VencimientoBase): Paso[] {
         ? `Ingresada el ${fechaLarga(v.fechaCargo)}`
         : 'Pendiente de Hacienda',
     },
+    {
+      clave: 'aplazamiento',
+      titulo: 'Aplazamiento',
+      detalle: detalleAplazamiento(v),
+    },
   ];
 
   /*
@@ -607,9 +811,10 @@ function construirPasos(v: VencimientoBase): Paso[] {
    * solo si el dinero viene de vuelta. Los tres son excluyentes entre sí.
    */
   const visibles = definicion.filter((p) => {
-    if (p.clave === 'pago') return paganEllos;
-    if (p.clave === 'cargo') return hayCargo;
+    if (p.clave === 'pago') return paganEllos && !hayAplazamiento;
+    if (p.clave === 'cargo') return hayCargo && !hayAplazamiento;
     if (p.clave === 'devolucion') return hayDevolucion;
+    if (p.clave === 'aplazamiento') return hayAplazamiento;
     return true;
   });
   const primeraPendiente = visibles.findIndex((p) => !hechos[p.clave]);
@@ -637,6 +842,11 @@ export interface ContextoCliente {
   redeme?: boolean;
   /** "Periodicidad IVA" = Mensual: mismo efecto que el REDEME. */
   ivaMensual?: boolean;
+  /**
+   * "Tipo de cliente" en BD - Clientes. Un autónomo puede aplazar en hasta 12
+   * cuotas y una sociedad en 6.
+   */
+  tipoCliente?: string | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -697,8 +907,13 @@ export function mapear(page: any, contexto: ContextoCliente = {}): Vencimiento {
     confirmacionCliente: props['Confirmación cliente']?.select?.name ?? null,
     notasCliente: texto('Notas cliente'),
 
+    aplazamientoCuotas: props['Aplazamiento cuotas']?.number ?? null,
+    aplazamientoPrimeraCuota: fecha('Aplazamiento primera cuota'),
+    aplazamientoMotivo: texto('Aplazamiento motivo'),
+
     redeme: contexto.redeme ?? false,
     ivaMensual: contexto.ivaMensual ?? false,
+    tipoCliente: contexto.tipoCliente ?? null,
     esNegativo: esResultadoNegativo(
       props['Resultado modelo']?.select?.name ?? null,
       props['Importe a ingresar']?.number ?? null,

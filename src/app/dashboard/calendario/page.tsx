@@ -18,6 +18,8 @@ function periodoCorto(periodo: string): string {
 
 /** Columna "Resultado": importe con su signo en cristiano, o guion. */
 function resultado(v: Vencimiento): string {
+  // Una informativa no lleva importe: no hay nada que pagar ni que cobrar.
+  if (v.resultado === 'Informativo') return 'Informativo';
   if (v.importe == null) {
     return v.resultado && v.resultado !== 'A pagar' ? v.resultado : '—';
   }
