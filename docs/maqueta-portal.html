@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal del cliente · EcomSolutions (maqueta)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand:#185FA5; --brand-ink:#0E3F70; --brand-soft:#E6EFF8;
+  --bg:#F5F7FA; --surface:#FFFFFF; --ink:#16212C; --muted:#5E6E7E; --line:#DCE3EA;
+  --ok:#1F7A4D; --ok-soft:#E3F3EA; --warn:#9A5B00; --warn-soft:#FCF0DC; --alert:#B3261E; --alert-soft:#FBE7E5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --brand:#5A9BDB; --brand-ink:#A9CCF0; --brand-soft:#16293D;
+    --bg:#0F151C; --surface:#17202A; --ink:#E6EDF3; --muted:#93A3B3; --line:#263341;
+    --ok:#5CC08A; --ok-soft:#153024; --warn:#E3A64A; --warn-soft:#33260F; --alert:#EF7A72; --alert-soft:#3A1917;
+  }
+}
+:root[data-theme="dark"]{
+  --brand:#5A9BDB; --brand-ink:#A9CCF0; --brand-soft:#16293D;
+  --bg:#0F151C; --surface:#17202A; --ink:#E6EDF3; --muted:#93A3B3; --line:#263341;
+  --ok:#5CC08A; --ok-soft:#153024; --warn:#E3A64A; --warn-soft:#33260F; --alert:#EF7A72; --alert-soft:#3A1917;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+a{color:var(--brand)}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+nav.side{background:var(--surface);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:2px}
+.logo{font-weight:700;font-size:18px;padding:0 10px 18px;color:var(--brand-ink)}
+.logo span{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.navbtn{display:flex;justify-content:space-between;align-items:center;text-align:left;background:none;border:0;border-radius:8px;padding:9px 10px;color:var(--ink)}
+.navbtn:hover{background:var(--brand-soft)}
+.navbtn[aria-current="page"]{background:var(--brand);color:#fff}
+.count{font-size:12px;font-weight:600;background:var(--alert);color:#fff;border-radius:10px;padding:0 7px}
+.navsep{height:1px;background:var(--line);margin:10px 6px}
+.ext{font-size:12px;color:var(--muted)}
+.navbtn[aria-current="page"] .ext{color:#fff}
+main{padding:32px clamp(16px,4vw,48px) 60px;max-width:1080px;width:100%}
+h1{font-size:28px;line-height:1.2;margin:0 0 4px;font-weight:700}
+h2{font-size:17px;margin:0 0 12px;font-weight:600}
+.lead{color:var(--muted);margin:0 0 26px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row small{display:block;color:var(--muted)}
+.chip{font-size:12.5px;font-weight:600;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.ok{background:var(--ok-soft);color:var(--ok)} .warn{background:var(--warn-soft);color:var(--warn)} .alert{background:var(--alert-soft);color:var(--alert)} .neutral{background:var(--brand-soft);color:var(--brand-ink)}
+.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600}
+.btn.ghost{background:none;color:var(--brand);border:1px solid var(--line)}
+.todo{border-left:4px solid var(--warn)}
+/* Seguimiento del trimestre: el elemento protagonista */
+.track{display:grid;grid-template-columns:repeat(5,1fr);margin:18px 0 6px;position:relative}
+.step{position:relative;padding-top:30px;font-size:13.5px}
+.step::before{content:"";position:absolute;top:9px;left:0;right:0;height:3px;background:var(--line)}
+.step.done::before,.step.now::before{background:var(--brand)}
+.dot{position:absolute;top:0;left:0;width:21px;height:21px;border-radius:50%;background:var(--surface);border:3px solid var(--line)}
+.step.done .dot{background:var(--brand);border-color:var(--brand)}
+.step.now .dot{border-color:var(--brand);box-shadow:0 0 0 5px var(--brand-soft)}
+.step b{display:block;font-weight:600}
+.step small{color:var(--muted)}
+.bignum{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.draft{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:end}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--muted);font-weight:500}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:10px;font:inherit}
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.month{border:1px solid var(--line);border-radius:10px;padding:12px}
+.month b{display:block}
+.note{background:var(--brand-soft);border-radius:10px;padding:14px 16px;color:var(--brand-ink);font-size:14px}
+.checks{display:grid;gap:8px}.checks label{display:flex;gap:10px;align-items:flex-start}.checks input{margin-top:4px;width:17px;height:17px;accent-color:var(--brand)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.view{display:none}.view.on{display:block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  nav.side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px;position:sticky;top:0;z-index:2}
+  .logo,.navsep{display:none}
+  .navbtn{white-space:nowrap;gap:6px}
+  .grid2{grid-template-columns:1fr}
+  .track{grid-template-columns:1fr;gap:4px}
+  .step{padding:0 0 12px 34px}
+  .step::before{top:0;bottom:0;left:9px;right:auto;width:3px;height:auto}
+}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="side" aria-label="Secciones">
+  <div class="logo">EcomSolutions<span>Portal del cliente</span></div>
+  <button class="navbtn" data-v="inicio" aria-current="page">Inicio</button>
+  <button class="navbtn" data-v="calendario">Calendario fiscal</button>
+  <button class="navbtn" data-v="borradores">Borradores y justificantes <span class="count" id="c-bor">1</span></button>
+  <button class="navbtn" data-v="documentacion">Documentación</button>
+  <button class="navbtn" data-v="notificaciones">Notificaciones <span class="count">1</span></button>
+  <button class="navbtn" data-v="consultas">Consultas</button>
+  <div class="navsep"></div>
+  <button class="navbtn" data-v="contabilidad">Mi contabilidad <span class="ext">Quantum</span></button>
+  <button class="navbtn" data-v="cuenta">Mi cuenta</button>
+</nav>
+
+<main>
+<!-- INICIO -->
+<section class="view on" id="inicio">
+  <h1>Hola, Laura</h1>
+  <p class="lead">Autónoma · Estimación directa simplificada · Plan con facturación en Quantum</p>
+
+  <div class="panel todo">
+    <h2>Necesitamos de ti</h2>
+    <div class="row"><div>Dar conformidad al borrador del modelo 303 del 3T<small>Plazo: 13 de octubre</small></div><button class="btn" data-go="borradores">Revisar borrador</button></div>
+    <div class="row" id="todo-doc"><div>Subir y confirmar la documentación de septiembre<small>Plazo: 5 de octubre · Se sube en Quantum y se confirma aquí</small></div><button class="btn ghost" data-go="documentacion">Confirmar documentación</button></div>
+    <div class="row"><div>Leer la notificación de la Seguridad Social del 14 de septiembre<small>Ya la hemos revisado: no requiere acción</small></div><button class="btn ghost" data-go="notificaciones">Leer</button></div>
+  </div>
+
+  <div class="panel">
+    <h2>Tercer trimestre 2026</h2>
+    <div class="track" id="track">
+      <div class="step done"><span class="dot"></span><b>Documentación</b><small>Completa</small></div>
+      <div class="step done"><span class="dot"></span><b>Borrador</b><small>Publicado el 9 oct</small></div>
+      <div class="step now" id="st-conf"><span class="dot"></span><b>Tu conformidad</b><small>Pendiente</small></div>
+      <div class="step" id="st-pres"><span class="dot"></span><b>Presentación</b><small>Antes del 20 oct</small></div>
+      <div class="step"><span class="dot"></span><b>Cargo en cuenta</b><small>20 oct</small></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Próximos vencimientos</h2>
+      <div class="row"><div>Modelo 303 · IVA 3T<small>Hasta el 20 de octubre</small></div><span class="chip warn">Esperando tu conformidad</span></div>
+      <div class="row"><div>Modelo 130 · IRPF 3T<small>Hasta el 20 de octubre</small></div><span class="chip neutral">En preparación</span></div>
+      <div class="row"><div>Modelo 111 · Retenciones 3T<small>Hasta el 20 de octubre</small></div><span class="chip neutral">En preparación</span></div>
+      <div class="row"><div>Modelo 390 · Resumen anual IVA<small>Hasta el 30 de enero</small></div><span class="chip neutral">Programado</span></div>
+    </div>
+    <div class="panel">
+      <h2>Tu negocio en Quantum</h2>
+      <p style="margin:0 0 14px;color:var(--muted)">Facturación, gastos, tesorería y resultados se consultan en Quantum, siempre actualizados.</p>
+      <div class="actions"><button class="btn" data-go="contabilidad">Abrir Quantum</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- CALENDARIO -->
+<section class="view" id="calendario">
+  <h1>Calendario fiscal</h1>
+  <p class="lead">Todos tus impuestos de 2026 y en qué punto está cada uno.</p>
+  <div class="panel tablewrap">
+    <table>
+      <thead><tr><th>Impuesto</th><th>Periodo</th><th>Plazo</th><th>Resultado</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>303 · IVA</td><td>3T</td><td>20 oct</td><td>612,40 €</td><td><span class="chip warn">Esperando tu conformidad</span></td></tr>
+        <tr><td>130 · IRPF</td><td>3T</td><td>20 oct</td><td>—</td><td><span class="chip neutral">En preparación</span></td></tr>
+        <tr><td>111 · Retenciones</td><td>3T</td><td>20 oct</td><td>—</td><td><span class="chip neutral">En preparación</span></td></tr>
+        <tr><td>303 · IVA</td><td>2T</td><td>20 jul</td><td>488,15 €</td><td><span class="chip ok">Presentado</span></td></tr>
+        <tr><td>130 · IRPF</td><td>2T</td><td>20 jul</td><td>301,72 €</td><td><span class="chip ok">Presentado</span></td></tr>
+        <tr><td>303 · IVA</td><td>1T</td><td>20 abr</td><td>355,90 €</td><td><span class="chip ok">Presentado</span></td></tr>
+        <tr><td>100 · Renta 2025</td><td>Anual</td><td>30 jun</td><td>A devolver 214,00 €</td><td><span class="chip ok">Presentado</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- BORRADORES -->
+<section class="view" id="borradores">
+  <h1>Borradores y justificantes</h1>
+  <p class="lead">Nunca presentamos un impuesto sin tu conformidad. Revisa cada borrador y confírmalo o pregúntanos.</p>
+  <div class="panel" id="draft303">
+    <div class="draft">
+      <div>
+        <h2 style="margin-bottom:2px">Modelo 303 · IVA · 3T 2026</h2>
+        <small style="color:var(--muted)">Publicado el 9 de octubre · Conformidad antes del 13 de octubre</small>
+        <div class="bignum" style="margin-top:12px">612,40 €</div>
+        <div style="color:var(--muted)">A ingresar · Cargo en tu cuenta el 20 de octubre</div>
+      </div>
+      <span class="chip warn" id="draft-chip">Esperando tu conformidad</span>
+    </div>
+    <div class="tablewrap" style="margin:16px 0">
+      <table>
+        <tbody>
+          <tr><td>IVA repercutido (ventas)</td><td style="text-align:right">2.184,00 €</td></tr>
+          <tr><td>IVA soportado deducible (gastos)</td><td style="text-align:right">−1.571,60 €</td></tr>
+          <tr><th>Resultado</th><th style="text-align:right;color:var(--ink)">612,40 €</th></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="actions" id="draft-actions">
+      <button class="btn" id="btn-conf">Dar conformidad</button>
+      <button class="btn ghost" data-go="consultas">Tengo una duda</button>
+      <button class="btn ghost">Descargar borrador (PDF)</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Justificantes presentados</h2>
+    <div class="row"><div>Modelo 303 · 2T 2026<small>Presentado el 14 de julio · CSV incluido</small></div><button class="btn ghost">Descargar</button></div>
+    <div class="row"><div>Modelo 130 · 2T 2026<small>Presentado el 14 de julio</small></div><button class="btn ghost">Descargar</button></div>
+    <div class="row"><div>Renta 2025<small>Presentada el 2 de junio</small></div><button class="btn ghost">Descargar</button></div>
+  </div>
+</section>
+
+<!-- DOCUMENTACION -->
+<section class="view" id="documentacion">
+  <h1>Documentación</h1>
+  <p class="lead">Las facturas y tickets se suben en Quantum. Aquí ves qué meses están completos y qué te hemos pedido.</p>
+  <div class="panel">
+    <h2>Documentación mensual</h2>
+    <div class="months">
+      <div class="month"><b>Julio</b><span class="chip ok">Completa</span></div>
+      <div class="month"><b>Agosto</b><span class="chip ok">Completa</span></div>
+      <div class="month"><b>Septiembre</b><span class="chip warn" id="sep-chip">Hasta el 5 oct</span></div>
+      <div class="month"><b>Octubre</b><span class="chip neutral">Aún no</span></div>
+    </div>
+    <div class="actions" style="margin-top:16px"><button class="btn ghost" data-go="contabilidad">Subir facturas en Quantum</button></div>
+  </div>
+  <div class="panel todo" id="cierre">
+    <h2>Confirma la documentación de septiembre</h2>
+    <p style="margin:0 0 12px;color:var(--muted)">Cuando lo hayas subido todo a Quantum, márcalo aquí. Así sabemos que podemos empezar a contabilizar el mes.</p>
+    <div class="checks">
+      <label><input type="checkbox" class="ck"> He subido o emitido en Quantum todas mis facturas de venta</label>
+      <label><input type="checkbox" class="ck"> He subido todas las facturas de gastos y tickets</label>
+      <label><input type="checkbox" class="ck"> He subido el extracto bancario del mes</label>
+      <label><input type="checkbox" class="ck"> Te he avisado de cualquier cambio en mi actividad (o no ha habido)</label>
+    </div>
+    <label style="display:block;margin:12px 0 4px;color:var(--muted)" for="obs">¿Algo que debamos saber? (opcional)</label>
+    <textarea id="obs" style="min-height:60px" placeholder="Por ejemplo: la factura del proveedor X llegará la semana que viene"></textarea>
+    <div class="actions" style="margin-top:12px;align-items:center">
+      <button class="btn" id="btn-cierre" disabled>Confirmar documentación completa</button>
+      <button class="btn ghost" id="btn-sinmov">Este mes no he tenido movimientos</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Te hemos pedido</h2>
+    <div class="row"><div>Contrato de alquiler del local<small>Pedido el 2 de septiembre · Para deducir el alquiler y aplicar la retención</small></div><button class="btn ghost">Adjuntar</button></div>
+    <div class="row"><div>Extracto bancario de septiembre<small>Pedido el 1 de octubre</small></div><button class="btn ghost">Adjuntar</button></div>
+  </div>
+</section>
+
+<!-- NOTIFICACIONES -->
+<section class="view" id="notificaciones">
+  <h1>Notificaciones</h1>
+  <p class="lead">Revisamos cada día tu buzón oficial. Aquí tienes cada carta con nuestra explicación.</p>
+  <div class="panel">
+    <div class="row"><div><b>Tesorería General de la Seguridad Social</b> · 14 sep<small>Resolución sobre la regularización de cuotas de 2025. Te devuelven 96,30 € en los próximos meses. No tienes que hacer nada.</small></div><span class="chip ok">Sin acción</span></div>
+    <div class="row"><div><b>Agencia Tributaria</b> · 3 jun<small>Comunicación de inicio de la Renta 2025. Ya atendida.</small></div><span class="chip neutral">Cerrada</span></div>
+  </div>
+  <div class="note">¿Te ha llegado una carta en papel? Hazle una foto y envíanosla desde Consultas el mismo día: muchos plazos son de 10 días.</div>
+</section>
+
+<!-- CONSULTAS -->
+<section class="view" id="consultas">
+  <h1>Consultas</h1>
+  <p class="lead">Respondemos en un máximo de 48 horas laborables. Si es urgente, márcalo.</p>
+  <div class="panel">
+    <h2>Nueva consulta</h2>
+    <label for="q" style="display:block;margin-bottom:6px;color:var(--muted)">Escribe tu pregunta</label>
+    <textarea id="q" placeholder="Por ejemplo: ¿puedo deducirme el portátil que he comprado?"></textarea>
+    <div class="actions" style="margin-top:10px;align-items:center">
+      <label><input type="checkbox"> Es urgente</label>
+      <button class="btn ghost">Adjuntar archivo</button>
+      <button class="btn" id="btn-send">Enviar consulta</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Tus consultas</h2>
+    <div class="row"><div>¿Tengo que hacer factura a un cliente de Francia?<small>12 sep · Respondida</small></div><span class="chip ok">Respondida</span></div>
+    <div class="row"><div>Cambio de cuenta bancaria para domiciliaciones<small>28 ago · Respondida</small></div><span class="chip ok">Respondida</span></div>
+  </div>
+</section>
+
+<!-- CONTABILIDAD -->
+<section class="view" id="contabilidad">
+  <h1>Mi contabilidad</h1>
+  <p class="lead">Tu facturación y tu contabilidad están en Quantum, el programa que usamos juntos.</p>
+  <div class="grid2">
+    <div class="panel">
+      <h2>En Quantum puedes</h2>
+      <div class="row"><div>Emitir facturas con VERI*FACTU</div></div>
+      <div class="row"><div>Subir facturas de gastos y tickets, también desde el móvil</div></div>
+      <div class="row"><div>Ver ingresos, gastos, tesorería y resultados</div></div>
+      <div class="actions" style="margin-top:12px"><button class="btn">Abrir Quantum</button><button class="btn ghost">Descargar la app</button></div>
+    </div>
+    <div class="panel">
+      <h2>¿Olvidaste tu acceso?</h2>
+      <p style="margin:0 0 12px;color:var(--muted)">Te reenviamos la invitación a tu correo.</p>
+      <button class="btn ghost" id="btn-inv">Reenviar invitación</button>
+    </div>
+  </div>
+</section>
+
+<!-- CUENTA -->
+<section class="view" id="cuenta">
+  <h1>Mi cuenta</h1>
+  <p class="lead">Tu servicio contratado, tus pagos y tus datos.</p>
+  <div class="grid2">
+    <div class="panel">
+      <h2>Servicio</h2>
+      <div class="row"><div>Autónomo · Plan con facturación<small>Cuota mensual domiciliada</small></div><span class="chip ok">Activo</span></div>
+      <div class="row"><div>Contrato de servicios<small>Firmado el 3 de febrero de 2026</small></div><button class="btn ghost">Ver contrato</button></div>
+    </div>
+    <div class="panel">
+      <h2>Facturas de EcomSolutions</h2>
+      <div class="row"><div>Septiembre 2026</div><button class="btn ghost">Descargar</button></div>
+      <div class="row"><div>Agosto 2026</div><button class="btn ghost">Descargar</button></div>
+      <div class="row"><div>Método de pago<small>Tarjeta terminada en 4417</small></div><button class="btn ghost">Cambiar</button></div>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const views=[...document.querySelectorAll('.view')], navs=[...document.querySelectorAll('.navbtn')];
+function go(id){
+  views.forEach(v=>v.classList.toggle('on',v.id===id));
+  navs.forEach(n=>{ if(n.dataset.v===id) n.setAttribute('aria-current','page'); else n.removeAttribute('aria-current'); });
+  window.scrollTo({top:0});
+}
+navs.forEach(n=>n.addEventListener('click',()=>go(n.dataset.v)));
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+const toast=m=>{const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2200)};
+document.getElementById('btn-conf').addEventListener('click',()=>{
+  const chip=document.getElementById('draft-chip'); chip.className='chip ok'; chip.textContent='Conformidad dada';
+  document.getElementById('draft-actions').innerHTML='<button class="btn ghost">Descargar borrador (PDF)</button>';
+  const c=document.getElementById('st-conf'); c.className='step done'; c.querySelector('small').textContent='Dada hoy';
+  const p=document.getElementById('st-pres'); p.className='step now';
+  document.getElementById('c-bor').remove();
+  toast('Conformidad dada. Presentaremos el modelo 303 antes del 20 de octubre.');
+});
+document.getElementById('btn-send').addEventListener('click',()=>{document.getElementById('q').value='';toast('Consulta enviada. Te responderemos en 48 horas laborables.')});
+document.getElementById('btn-inv').addEventListener('click',()=>toast('Invitación reenviada a tu correo.'));
+const cks=[...document.querySelectorAll('.ck')], bc=document.getElementById('btn-cierre');
+cks.forEach(c=>c.addEventListener('change',()=>{bc.disabled=!cks.every(x=>x.checked)}));
+function cerrar(txt,msg){
+  document.getElementById('cierre').outerHTML='<div class="panel"><h2>Septiembre confirmado</h2><p style="margin:0;color:var(--muted)">'+txt+' Si luego encuentras algo más, súbelo a Quantum y avísanos en Consultas.</p></div>';
+  const ch=document.getElementById('sep-chip'); ch.className='chip ok'; ch.textContent='Confirmada por ti';
+  const td=document.getElementById('todo-doc'); if(td) td.remove();
+  toast(msg);
+}
+bc.addEventListener('click',()=>cerrar('Confirmaste que la documentación está completa. Empezamos a contabilizar el mes.','Documentación de septiembre confirmada.'));
+document.getElementById('btn-sinmov').addEventListener('click',()=>cerrar('Nos indicaste que este mes no has tenido movimientos.','Anotado: septiembre sin movimientos.'));
+</script>
+</body>
+</html>
