@@ -115,9 +115,15 @@ export default async function InicioPage() {
                 <div>
                   Dar conformidad al borrador del modelo {v.modelo} de {v.periodo}
                   <small>
-                    {v.plazoConformidad
-                      ? `${fueraDePlazo ? 'El plazo venció el' : 'Plazo:'} ${fechaLarga(v.plazoConformidad)}`
-                      : 'Sin plazo fijado'}
+                    {v.plazoConformidad ? (
+                      <span style={fueraDePlazo ? { color: 'var(--alert)' } : undefined}>
+                        {fueraDePlazo
+                          ? `El plazo venció el ${fechaLarga(v.plazoConformidad)}`
+                          : `Plazo: ${fechaLarga(v.plazoConformidad)}`}
+                      </span>
+                    ) : (
+                      'Sin plazo fijado'
+                    )}
                   </small>
                 </div>
                 <Link href={`/dashboard/borradores#v-${v.id}`} className="btn">
