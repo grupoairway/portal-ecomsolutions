@@ -1,7 +1,5 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { decodeSession } from '@/lib/session';
+import { requireSession } from '@/lib/session-server';
 import { getVencimientosCliente, getDocumentosCliente, getInformesCliente, getModelosCliente, buscarClientePorEmail } from '@/lib/notion';
 import { parseMetricas } from '@/lib/informe-tipos';
 import type { DocumentoNotion } from '@/lib/notion';
@@ -29,10 +27,7 @@ function formatearFechaCorta(fecha: string | null): string {
 }
 
 export default async function DashboardPage() {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
   // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
   let nombreCliente = session.nombre

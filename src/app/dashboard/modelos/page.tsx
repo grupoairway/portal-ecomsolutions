@@ -1,15 +1,10 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { decodeSession } from '@/lib/session';
+import { requireSession } from '@/lib/session-server';
 import { getModelosCliente } from '@/lib/notion';
 import ModelosClient from './ModelosClient';
 import styles from '../dashboard.module.css';
 
 export default async function ModelosPage() {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
   const modelos = await getModelosCliente(session.clienteId).catch(() => []);
 

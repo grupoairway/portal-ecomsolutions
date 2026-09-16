@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeSession } from '@/lib/session';
+import { SESSION_COOKIE, verifySession } from '@/lib/session';
 import { sendDocumentacionCliente } from '@/lib/mailer';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -12,13 +12,9 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const sessionToken = request.cookies.get('portal_session')?.value;
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-  }
-  const session = decodeSession(sessionToken);
+  const session = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
   if (!session) {
-    return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
   let formData: FormData;

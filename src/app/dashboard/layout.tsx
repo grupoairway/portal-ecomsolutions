@@ -1,13 +1,14 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { decodeSession } from '@/lib/session';
+import { requireSession } from '@/lib/session-server';
+import { SESSION_COOKIE } from '@/lib/session';
 import { buscarClientePorEmail, getModelosPendientesCount } from '@/lib/notion';
 import DashboardNav from '@/components/DashboardNav';
 import styles from './dashboard.module.css';
 
 async function logout() {
   'use server';
-  cookies().delete('portal_session');
+  cookies().delete(SESSION_COOKIE);
   redirect('/');
 }
 
@@ -16,10 +17,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const sessionCookie = cookies().get('portal_session');
-  if (!sessionCookie) redirect('/');
-  const session = decodeSession(sessionCookie.value);
-  if (!session) redirect('/');
+  const session = await requireSession();
 
   // Fallback: si la sesión no tiene nombre (cookie antigua), buscarlo en Notion
   const [clienteNotion, modelosPendientes] = await Promise.all([
