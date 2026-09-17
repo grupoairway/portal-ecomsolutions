@@ -16,6 +16,8 @@ import styles from './GraficoLineas.module.css';
 
 export interface PuntoLinea {
   etiqueta: string;
+  /** "Julio 2026", para el recuadro que sale al pasar el ratón. */
+  nombre: string;
   esteAnio: number | null;
   /** null cuando el informe no trae comparación con el ejercicio anterior. */
   anioAnterior: number | null;
@@ -58,6 +60,7 @@ export default function GraficoLineas({ datos, titulo, nombres, nota }: Props) {
             tick={{ fontSize: 12, fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}
+            interval={0}
           />
           <YAxis
             tickFormatter={formatearEje}
@@ -68,6 +71,9 @@ export default function GraficoLineas({ datos, titulo, nombres, nota }: Props) {
           />
           <Tooltip
             formatter={(valor: number) => euros(valor)}
+            labelFormatter={(etiqueta: string, payload) =>
+              payload?.[0]?.payload?.nombre ?? etiqueta
+            }
             contentStyle={{
               background: 'var(--surface)',
               border: '1px solid var(--line)',

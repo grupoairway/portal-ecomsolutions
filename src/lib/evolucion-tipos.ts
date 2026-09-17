@@ -23,7 +23,7 @@
  * `periodo.ejercicio`, nunca construyendo un Date.
  */
 
-import { euros } from './fechas';
+import { euros, porcentaje } from './fechas';
 
 export type TipoCliente = 'sociedad' | 'autonomo';
 export type TipoPeriodo = 'Mensual' | 'Trimestral' | 'Anual';
@@ -174,11 +174,15 @@ export function mesEnFrase(mes: string): string {
   return MESES[numeroMes(mes) - 1] ?? mes;
 }
 
-/** "2026-07" -> "jul"; en enero se añade el año para orientarse en la gráfica. */
+/**
+ * "2026-07" -> "jul".
+ *
+ * Todas las etiquetas miden lo mismo a propósito: con doce meses en el eje,
+ * una etiqueta más ancha que las demás es la primera que la gráfica decide no
+ * pintar. El año va en el título de la barra al pasar el ratón.
+ */
 export function mesCorto(mes: string): string {
-  const n = numeroMes(mes);
-  const corto = MESES_CORTOS[n - 1] ?? mes;
-  return n === 1 ? `${corto} ${mes.slice(2, 4)}` : corto;
+  return MESES_CORTOS[numeroMes(mes) - 1] ?? mes;
 }
 
 function numeroMes(mes: string): number {
@@ -504,7 +508,10 @@ function tituloAcumulado(informe: Informe): string {
 
 export interface PuntoBarras {
   mes: string;
+  /** "jul", para el eje. */
   etiqueta: string;
+  /** "Julio 2026", para el recuadro que sale al pasar el ratón. */
+  nombre: string;
   /** null = ese mes no tiene informe publicado; queda como hueco. */
   ingresos: number | null;
   gastos: number | null;
@@ -513,6 +520,7 @@ export interface PuntoBarras {
 export interface PuntoLinea {
   mes: string;
   etiqueta: string;
+  nombre: string;
   esteAnio: number | null;
   anioAnterior: number | null;
 }
@@ -545,6 +553,7 @@ export function serieBarras(informes: Informe[], meses = 12): PuntoBarras[] {
     puntos.unshift({
       mes,
       etiqueta: mesCorto(mes),
+      nombre: nombreMes(mes),
       ingresos: cifras?.ingresos.found ? cifras.ingresos.actual : null,
       gastos: cifras?.gastos.found ? cifras.gastos.actual : null,
     });
@@ -563,16 +572,19 @@ export function serieBarras(informes: Informe[], meses = 12): PuntoBarras[] {
  * ejercicio pasado.
  */
 export function serieAcumulado(informes: Informe[]): PuntoLinea[] {
-  const mensuales = informesMensuales(informes);
-  const ejercicio = mensuales[0]?.ejercicio;
+  const ejercicio = informesMensuales(informes)[0]?.ejercicio;
   if (!ejercicio) return [];
 
-  return mensuales
-    .filter((i) => i.ejercicio === ejercicio && i.pygYtd)
+  // Aquí entra todo informe del ejercicio que traiga acumulado, tenga o no
+  // cifra del mes aislado: que el panel no haya podido derivar el mes no quita
+  // que ese mes tenga informe publicado y su acumulado sea bueno.
+  return informes
+    .filter((i) => i.mes !== null && i.ejercicio === ejercicio && i.pygYtd)
     .sort((a, b) => a.mes!.localeCompare(b.mes!))
     .map((i) => ({
       mes: i.mes!,
       etiqueta: mesCorto(i.mes!),
+      nombre: nombreMes(i.mes!),
       esteAnio: i.pygYtd!.resultado.found ? i.pygYtd!.resultado.actual : null,
       anioAnterior: i.pygYtd!.resultado.anioAnterior,
     }));
@@ -596,13 +608,6 @@ const MAX_PARTIDAS = 2;
 export interface Alerta {
   tono: 'warn' | 'alert';
   texto: string;
-}
-
-function porcentaje(n: number, decimales = 1): string {
-  return `${n.toLocaleString('es-ES', {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales,
-  })} %`;
 }
 
 /**
@@ -636,7 +641,7 @@ export function alertas(informes: Informe[]): Alerta[] {
         tono: 'warn',
         texto:
           `Tus gastos de ${mesActual} (${euros(cifras.gastos.actual)}) han subido ` +
-          `un ${porcentaje(subida, 0)} respecto a ${mesPrevio}.`,
+          `un ${porcentaje(subida)} respecto a ${mesPrevio}.`,
       });
     }
 
@@ -723,7 +728,7 @@ function alertasPorPartida(informe: Informe): Alerta[] {
     .map((g) => ({
       tono: 'warn' as const,
       texto:
-        `En lo que va de año llevas un ${porcentaje(g.pct!, 0)} más en ` +
+        `En lo que va de año llevas un ${porcentaje(g.pct!)} más en ` +
         `${enFrase(g.cuenta.desc)} que el año pasado: ${euros(g.actual)} ` +
         `frente a ${euros(g.anterior)}.`,
     }));

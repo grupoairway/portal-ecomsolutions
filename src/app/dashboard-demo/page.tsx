@@ -82,21 +82,21 @@ const CONSULTAS_DEMO = [
 ];
 
 const DATOS_BARRAS = [
-  { etiqueta: 'ene', ingresos: 36200, gastos: 28100 },
-  { etiqueta: 'feb', ingresos: 38500, gastos: 29400 },
-  { etiqueta: 'mar', ingresos: 41000, gastos: 31200 },
-  { etiqueta: 'abr', ingresos: 44300, gastos: 33800 },
-  { etiqueta: 'may', ingresos: 46800, gastos: 35600 },
-  { etiqueta: 'jun', ingresos: 48500, gastos: 39580 },
+  { etiqueta: 'ene', nombre: 'Enero 2026', ingresos: 36200, gastos: 28100 },
+  { etiqueta: 'feb', nombre: 'Febrero 2026', ingresos: 38500, gastos: 29400 },
+  { etiqueta: 'mar', nombre: 'Marzo 2026', ingresos: 41000, gastos: 31200 },
+  { etiqueta: 'abr', nombre: 'Abril 2026', ingresos: 44300, gastos: 33800 },
+  { etiqueta: 'may', nombre: 'Mayo 2026', ingresos: 46800, gastos: 35600 },
+  { etiqueta: 'jun', nombre: 'Junio 2026', ingresos: 48500, gastos: 39580 },
 ];
 
 const DATOS_LINEAS = [
-  { etiqueta: 'ene', esteAnio: 8100, anioAnterior: 6400 },
-  { etiqueta: 'feb', esteAnio: 9100, anioAnterior: 7100 },
-  { etiqueta: 'mar', esteAnio: 9800, anioAnterior: 7900 },
-  { etiqueta: 'abr', esteAnio: 10500, anioAnterior: 8600 },
-  { etiqueta: 'may', esteAnio: 11200, anioAnterior: 9000 },
-  { etiqueta: 'jun', esteAnio: 8920, anioAnterior: 9400 },
+  { etiqueta: 'ene', nombre: 'Enero 2026', esteAnio: 8100, anioAnterior: 6400 },
+  { etiqueta: 'feb', nombre: 'Febrero 2026', esteAnio: 9100, anioAnterior: 7100 },
+  { etiqueta: 'mar', nombre: 'Marzo 2026', esteAnio: 9800, anioAnterior: 7900 },
+  { etiqueta: 'abr', nombre: 'Abril 2026', esteAnio: 10500, anioAnterior: 8600 },
+  { etiqueta: 'may', nombre: 'Mayo 2026', esteAnio: 11200, anioAnterior: 9000 },
+  { etiqueta: 'jun', nombre: 'Junio 2026', esteAnio: 8920, anioAnterior: 9400 },
 ];
 
 function periodoAMetricasInforme(p: typeof PERIODOS_DEMO[0]): MetricasInforme {

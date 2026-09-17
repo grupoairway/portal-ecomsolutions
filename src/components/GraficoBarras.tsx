@@ -14,8 +14,10 @@ import { euros } from '@/lib/fechas';
 import styles from './GraficoBarras.module.css';
 
 export interface PuntoBarras {
-  /** Lo que se lee bajo la barra: "jul", "ene 26". */
+  /** Lo que se lee bajo la barra: "jul". */
   etiqueta: string;
+  /** "Julio 2026", para el recuadro que sale al pasar el ratón. */
+  nombre: string;
   /** null = ese mes no tiene informe publicado. Queda como hueco. */
   ingresos: number | null;
   gastos: number | null;
@@ -58,6 +60,9 @@ export default function GraficoBarras({ datos, titulo, nota }: Props) {
             tick={{ fontSize: 12, fill: 'var(--muted)' }}
             axisLine={false}
             tickLine={false}
+            // Sin esto, con doce meses la gráfica se salta etiquetas por su
+            // cuenta y enero es de las primeras en caer.
+            interval={0}
           />
           <YAxis
             tickFormatter={formatearEje}
@@ -69,6 +74,9 @@ export default function GraficoBarras({ datos, titulo, nota }: Props) {
           <Tooltip
             cursor={{ fill: 'var(--brand-soft)', opacity: 0.5 }}
             formatter={(valor: number) => euros(valor)}
+            labelFormatter={(etiqueta: string, payload) =>
+              payload?.[0]?.payload?.nombre ?? etiqueta
+            }
             contentStyle={{
               background: 'var(--surface)',
               border: '1px solid var(--line)',

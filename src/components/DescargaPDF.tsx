@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { MetricasInforme } from '@/lib/informe-tipos';
 import type { FilaBalance } from '@/lib/balance-tipos';
-import { euros } from '@/lib/fechas';
+import { euros, porcentaje } from '@/lib/fechas';
 
 interface Props {
   metricas: MetricasInforme;
@@ -34,7 +34,7 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
       const formatVal = (n: number) =>
         euros(n, { signoAscii: true });
       const formatVar = (v: number) =>
-        v > 0 ? `+${v.toFixed(1)}%` : v < 0 ? `${v.toFixed(1)}%` : '-';
+        v > 0 ? `+${porcentaje(v, { signoAscii: true })}` : v < 0 ? porcentaje(v, { signoAscii: true }) : '-';
 
       // ── PÁGINA 1 — PORTADA ──────────────────────────────────────────
       doc.setFillColor(37, 99, 235);
@@ -221,7 +221,7 @@ export default function DescargaPDF({ metricas, periodo, nombreCliente, analisis
           if (fila.variacion !== null) {
             const vc: RGB = fila.variacion > 0 ? [22, 163, 74] : fila.variacion < 0 ? [220, 38, 38] : [107, 114, 128];
             doc.setTextColor(vc[0], vc[1], vc[2]);
-            doc.text(fila.variacion.toFixed(1) + '%', ancho - margen, ty, { align: 'right' });
+            doc.text(porcentaje(fila.variacion, { signoAscii: true }), ancho - margen, ty, { align: 'right' });
           }
 
           ty += fila.nivel === 3 ? 5 : 6;

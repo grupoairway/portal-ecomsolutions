@@ -1,4 +1,4 @@
-import { euros } from '@/lib/fechas';
+import { euros, porcentaje } from '@/lib/fechas';
 import styles from './MetricCard.module.css';
 
 interface MetricCardProps {
@@ -33,11 +33,11 @@ export default function MetricCard({
         {tieneVariacion && (
           esPositiva ? (
             <span className={`${styles.badge} ${styles.badgePositive}`}>
-              ▲ +{variacion!.toFixed(1)}%
+              ▲ +{porcentaje(variacion!)}
             </span>
           ) : esNegativa ? (
             <span className={`${styles.badge} ${styles.badgeNegative}`}>
-              ▼ {variacion!.toFixed(1)}%
+              ▼ {porcentaje(variacion!)}
             </span>
           ) : (
             <span className={`${styles.badge} ${styles.badgeNeutral}`}>

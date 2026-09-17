@@ -93,6 +93,25 @@
   --serie-2: #c08430;
 }
 
+/*
+ * Respaldo para el signo menos de importes y porcentajes (U+2212).
+ *
+ * El subconjunto "latin" de Figtree declara ese carácter en su unicode-range,
+ * así que el navegador se compromete con esa fuente y no cae a ninguna otra
+ * aunque el glifo no se pinte. Esta familia cubre únicamente U+2212 y lo toma
+ * de una fuente del sistema, así que el signo deja de depender de la fuente
+ * del portal. El resto de caracteres no entran en el rango y siguen en
+ * Figtree.
+ */
+@font-face {
+  font-family: 'SignoMenos';
+  src: local('Segoe UI'), local('Helvetica Neue'), local('Helvetica'),
+    local('Arial'), local('Liberation Sans'), local('DejaVu Sans');
+  unicode-range: U+2212;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -110,7 +129,9 @@ body {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-sans), Figtree, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* 'SignoMenos' va primera y solo aporta U+2212; todo lo demás cae en Figtree. */
+  font-family: 'SignoMenos', var(--font-sans), Figtree, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
   font-size: 15px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;

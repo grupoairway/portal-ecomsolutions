@@ -1,4 +1,4 @@
-import { euros } from '@/lib/fechas';
+import { decimal, euros, porcentaje } from '@/lib/fechas';
 import type { Cifra, Comparacion } from '@/lib/evolucion-tipos';
 import styles from './TarjetaCifra.module.css';
 
@@ -54,12 +54,12 @@ function Linea({
         >
           {sube ? '▲' : baja ? '▼' : '='}{' '}
           {comparacion.puntos !== null
-            ? `${numero(Math.abs(comparacion.puntos), 1)} puntos`
-            : `${numero(Math.abs(comparacion.pct!), comparacion.pct! >= 10 ? 0 : 1)} %`}
+            ? `${decimal(Math.abs(comparacion.puntos))} puntos`
+            : porcentaje(Math.abs(comparacion.pct!))}
         </span>
       )}
       <span className={styles.referencia}>
-        frente a {comparacion.referencia}
+        {frenteA(comparacion.referencia)}
         {comparacion.valor !== null
           ? ` (${formatear(comparacion.valor, cifra.formato)})`
           : ''}
@@ -68,14 +68,17 @@ function Linea({
   );
 }
 
-function formatear(valor: number | null, formato: Cifra['formato']): string {
-  if (valor === null) return '—';
-  return formato === 'porcentaje' ? `${numero(valor, 1)} %` : euros(valor);
+/**
+ * "frente a junio", pero "frente al mismo tramo de 2025": en español la
+ * preposición y el artículo se contraen.
+ */
+function frenteA(referencia: string): string {
+  return referencia.startsWith('el ')
+    ? `frente al ${referencia.slice(3)}`
+    : `frente a ${referencia}`;
 }
 
-function numero(n: number, decimales: number): string {
-  return n.toLocaleString('es-ES', {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales,
-  });
+function formatear(valor: number | null, formato: Cifra['formato']): string {
+  if (valor === null) return '—';
+  return formato === 'porcentaje' ? porcentaje(valor) : euros(valor);
 }

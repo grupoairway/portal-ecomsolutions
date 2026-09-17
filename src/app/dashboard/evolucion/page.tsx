@@ -121,7 +121,7 @@ export default async function EvolucionPage() {
               titulo="Ingresos y gastos de cada mes"
               nota={
                 faltanMeses
-                  ? 'Los meses sin barra todavía no tienen informe publicado.'
+                  ? 'Los meses sin barra no tienen informe publicado o no se puede calcular su dato mensual.'
                   : undefined
               }
             />
