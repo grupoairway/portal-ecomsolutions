@@ -1,0 +1,192 @@
+{
+  "metricas": {
+    "version": 2,
+    "generadoEn": "2026-09-16T20:05:35.529Z",
+    "tipoCliente": "sociedad",
+    "basePyg": "ytd",
+    "moneda": "EUR",
+    "cliente": {
+      "codigoQuantum": "35031",
+      "nombreExcel": "GRUPO AIRWAY S.L"
+    },
+    "periodo": {
+      "etiqueta": "Julio 2026",
+      "tipo": "Mensual",
+      "ejercicio": 2026,
+      "ejercicioAnterior": 2025,
+      "mes": 7,
+      "origen": "APERTURA   hasta  JULIO 2026"
+    },
+    "balance": {
+      "totalActivo": {
+        "actual": 1349.98,
+        "anioAnterior": 4242.42,
+        "varPct": -68.18,
+        "found": true
+      },
+      "caja": {
+        "actual": 0,
+        "anioAnterior": 1417.15,
+        "varPct": -100,
+        "found": true
+      },
+      "clientesDeudores": {
+        "actual": 1179.75,
+        "anioAnterior": 623.15,
+        "varPct": 89.32,
+        "found": true
+      },
+      "patrimonioNeto": {
+        "actual": 164.31,
+        "anioAnterior": 1854.9,
+        "varPct": -91.14,
+        "found": true
+      },
+      "pasivoCorriente": {
+        "actual": 1185.67,
+        "anioAnterior": 2387.52,
+        "varPct": -50.34,
+        "found": true
+      },
+      "proveedores": {
+        "actual": 940.78,
+        "anioAnterior": 4672.29,
+        "varPct": -79.86,
+        "found": true
+      },
+      "cuadre": {
+        "totalActivo": 1349.98,
+        "totalPasivo": 1349.98,
+        "diferencia": 0,
+        "ok": true
+      }
+    },
+    "pygYtd": {
+      "ingresos": {
+        "actual": 975,
+        "anioAnterior": 385,
+        "varPct": 153.25,
+        "found": true
+      },
+      "otrosIngresosExplotacion": {
+        "actual": 0,
+        "anioAnterior": null,
+        "varPct": null,
+        "found": false
+      },
+      "gastos": {
+        "actual": 810.69,
+        "anioAnterior": 1017.54,
+        "varPct": -20.33,
+        "found": true,
+        "derivado": true
+      },
+      "resultadoExplotacion": {
+        "actual": 164.31,
+        "anioAnterior": -632.54,
+        "varPct": null,
+        "found": true
+      },
+      "resultado": {
+        "actual": 164.31,
+        "anioAnterior": -632.54,
+        "varPct": null,
+        "found": true
+      }
+    },
+    "pygMes": {
+      "disponible": true,
+      "motivo": null,
+      "baseAnterior": {
+        "periodo": "Junio 2026",
+        "informeId": "fixture-junio"
+      },
+      "ingresos": {
+        "actual": 100,
+        "anioAnterior": 85,
+        "varPct": 17.65,
+        "found": true,
+        "derivado": true
+      },
+      "otrosIngresosExplotacion": {
+        "actual": 0,
+        "anioAnterior": null,
+        "varPct": null,
+        "found": false,
+        "derivado": true
+      },
+      "gastos": {
+        "actual": 22.54,
+        "anioAnterior": 0,
+        "varPct": null,
+        "found": true,
+        "derivado": true
+      },
+      "resultadoExplotacion": {
+        "actual": 77.46,
+        "anioAnterior": 85,
+        "varPct": -8.87,
+        "found": true,
+        "derivado": true
+      },
+      "resultado": {
+        "actual": 77.46,
+        "anioAnterior": 85,
+        "varPct": -8.87,
+        "found": true,
+        "derivado": true
+      }
+    },
+    "avisos": []
+  },
+  "cuentasPyg": [
+    {
+      "epigrafe": "A01",
+      "epigrafeDesc": "IMPORTE CIFRA DE NEGOCIOS",
+      "cuenta": "700000000",
+      "desc": "VENTAS DE MERCADERIAS",
+      "actual": 250,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A01",
+      "epigrafeDesc": "IMPORTE CIFRA DE NEGOCIOS",
+      "cuenta": "705000000",
+      "desc": "PRESTACIONES DE SERVICIOS",
+      "actual": 725,
+      "anioAnterior": 385
+    },
+    {
+      "epigrafe": "A04",
+      "epigrafeDesc": "APROVISIONAMIENTOS",
+      "cuenta": "607000000",
+      "desc": "TRABAJOS REALIZ.OTRAS EMPRESAS",
+      "actual": -379.4,
+      "anioAnterior": 0
+    },
+    {
+      "epigrafe": "A07",
+      "epigrafeDesc": "OTROS GASTOS DE EXPLOTACION",
+      "cuenta": "623000000",
+      "desc": "SERVIC. PROFESIONALES INDEPEN.",
+      "actual": -240.16,
+      "anioAnterior": -22.54
+    },
+    {
+      "epigrafe": "A07",
+      "epigrafeDesc": "OTROS GASTOS DE EXPLOTACION",
+      "cuenta": "627000000",
+      "desc": "PUBLIC.,PROPAGANDA Y REL.PUB.",
+      "actual": 0,
+      "anioAnterior": -995
+    },
+    {
+      "epigrafe": "A07",
+      "epigrafeDesc": "OTROS GASTOS DE EXPLOTACION",
+      "cuenta": "628000000",
+      "desc": "SUMINISTROS",
+      "actual": -191.13,
+      "anioAnterior": 0
+    }
+  ]
+}

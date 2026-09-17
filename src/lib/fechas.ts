@@ -108,3 +108,35 @@ export function euros(
   const texto = FORMATO_EUROS.format(n);
   return `${opciones.signoAscii ? texto : texto.replace(/^-/, MENOS)} €`;
 }
+
+/**
+ * Número con un decimal: "17,6", "−28,9".
+ *
+ * Lleva el mismo signo menos que los importes, a propósito: así todos los
+ * negativos del portal dependen del mismo carácter y se comportan igual.
+ */
+export function decimal(
+  n: number | null | undefined,
+  opciones: { signoAscii?: boolean } = {},
+): string {
+  if (n == null) return '';
+  const texto = n.toLocaleString('es-ES', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return opciones.signoAscii ? texto : texto.replace(/^-/, MENOS);
+}
+
+/**
+ * Porcentaje del portal: "17,6 %", "−28,9 %". Siempre un decimal, como el
+ * panel interno.
+ *
+ * `signoAscii`, como en euros(), es para el PDF.
+ */
+export function porcentaje(
+  n: number | null | undefined,
+  opciones: { signoAscii?: boolean } = {},
+): string {
+  if (n == null) return '';
+  return `${decimal(n, opciones)} %`;
+}
