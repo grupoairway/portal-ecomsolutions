@@ -231,7 +231,7 @@ export function margenAnioAnterior(pyg: Pyg | null): number | null {
 
 /** Una comparación de una cifra contra otra. */
 export interface Comparacion {
-  /** "junio", "julio de 2025", "el mismo tramo de 2025". */
+  /** "tu media de abr-jun", "junio", "julio de 2025", "el mismo tramo de 2025". */
   referencia: string;
   valor: number | null;
   /** null cuando no se puede expresar en porcentaje; entonces no se pinta. */
@@ -246,8 +246,13 @@ export interface Cifra {
   formato: 'euros' | 'porcentaje';
   /** En los gastos, subir es malo: el color del indicador se invierte. */
   mejorSiSube: boolean;
-  mesAnterior: Comparacion | null;
-  anioAnterior: Comparacion | null;
+  /**
+   * La comparación que manda: en el período, contra la media de los meses
+   * anteriores; en el acumulado, contra el mismo tramo del año pasado.
+   */
+  principal: Comparacion | null;
+  /** Debajo y en pequeño: el mismo período del año pasado. Solo si existe. */
+  secundaria: Comparacion | null;
 }
 
 export type BloqueMes =
@@ -259,28 +264,113 @@ export interface BloqueAcumulado {
   cifras: Cifra[];
   /** Caja a cierre del período. Solo sociedad. */
   caja: { valor: number; etiqueta: string } | null;
-  /** El export no trae ejercicio anterior: no hay con qué comparar. */
+  /** Ingresos acumulados entre los meses transcurridos. */
+  mediaMensualIngresos: { valor: number; etiqueta: string } | null;
+  /** El informe no trae ejercicio anterior: no hay con qué comparar. */
   sinAnioAnterior: boolean;
 }
 
+/* -------------------------------------------------------------------------
+ * La media de los meses anteriores
+ * ---------------------------------------------------------------------- */
+
+/** Cuántos meses previos entran como mucho en la media del período. */
+export const MESES_DE_MEDIA = 3;
+
+/**
+ * La referencia contra la que se compara el período: la media de los últimos
+ * meses publicados que traen cifra propia.
+ */
+export interface MediaPrevia {
+  /** Los meses que han entrado, del más antiguo al más reciente. */
+  meses: string[];
+  /** "tu media de abr-jun" con varios; "junio" cuando solo hay uno. */
+  referencia: string;
+  cifras: Pyg;
+}
+
+/**
+ * Los meses anteriores al informe que sirven de referencia.
+ *
+ * Solo entran los que traen `pygMes` calculado por el panel: de un mes sin
+ * cifra propia no se puede sacar una media, y el portal no la reconstruye
+ * restando acumulados. Se cogen los más recientes, aunque haya huecos entre
+ * ellos.
+ */
+export function mediaPrevia(
+  informe: Informe,
+  informes: Informe[],
+  cuantos = MESES_DE_MEDIA,
+): MediaPrevia | null {
+  if (!informe.mes) return null;
+
+  const previos = informes
+    .filter(
+      (i) =>
+        i.id !== informe.id &&
+        i.mes !== null &&
+        i.mes < informe.mes! &&
+        i.pygMes?.disponible === true &&
+        i.pygMes.cifras !== null,
+    )
+    .sort((a, b) => b.mes!.localeCompare(a.mes!))
+    .slice(0, cuantos)
+    .reverse();
+
+  if (previos.length === 0) return null;
+
+  const cifrasDe = (i: Informe) => i.pygMes!.cifras!;
+  const media = (saca: (p: Pyg) => Metrica): Metrica => {
+    const valores = previos.map((i) => saca(cifrasDe(i)));
+    const suma = valores.reduce((a, m) => a + m.actual, 0);
+    return {
+      actual: Math.round((suma / valores.length) * 100) / 100,
+      // La media no se compara con el año pasado: eso es cosa de cada mes.
+      anioAnterior: null,
+      varPct: null,
+      found: valores.every((m) => m.found),
+      derivado: true,
+    };
+  };
+
+  const meses = previos.map((i) => i.mes!);
+
+  return {
+    meses,
+    referencia:
+      meses.length === 1
+        ? mesEnFrase(meses[0])
+        : `tu media de ${mesCorto(meses[0])}-${mesCorto(meses[meses.length - 1])}`,
+    cifras: {
+      ingresos: media((p) => p.ingresos),
+      gastos: media((p) => p.gastos),
+      resultado: media((p) => p.resultado),
+    },
+  };
+}
+
+/* -------------------------------------------------------------------------
+ * Tarjetas
+ * ---------------------------------------------------------------------- */
+
 function comparacionAnioAnterior(
   m: Metrica,
-  referencia: string,
+  referencia: string | null,
 ): Comparacion | null {
-  if (m.anioAnterior === null) return null;
+  if (referencia === null || m.anioAnterior === null) return null;
   return { referencia, valor: m.anioAnterior, pct: m.varPct, puntos: null };
 }
 
-function comparacionMesAnterior(
+function comparacionContra(
   actual: Metrica,
-  anterior: Metrica | undefined,
-  referencia: string,
+  base: Metrica | undefined,
+  referencia: string | null,
 ): Comparacion | null {
-  if (!anterior || !anterior.found) return null;
+  if (referencia === null || !base || !base.found) return null;
   return {
     referencia,
-    valor: anterior.actual,
-    pct: variacionPct(actual.actual, anterior.actual),
+    valor: base.actual,
+    pct: variacionPct(actual.actual, base.actual),
     puntos: null,
   };
 }
@@ -290,8 +380,8 @@ function cifraDeMetrica(
   m: Metrica,
   opciones: {
     mejorSiSube: boolean;
-    anioAnterior: string | null;
-    mesAnterior?: { metrica: Metrica | undefined; referencia: string };
+    principal: Comparacion | null;
+    secundaria?: Comparacion | null;
   },
 ): Cifra | null {
   // found: false significa que ese concepto no existe en el Excel del cliente.
@@ -302,31 +392,25 @@ function cifraDeMetrica(
     valor: m.actual,
     formato: 'euros',
     mejorSiSube: opciones.mejorSiSube,
-    mesAnterior: opciones.mesAnterior
-      ? comparacionMesAnterior(
-          m,
-          opciones.mesAnterior.metrica,
-          opciones.mesAnterior.referencia,
-        )
-      : null,
-    anioAnterior: opciones.anioAnterior
-      ? comparacionAnioAnterior(m, opciones.anioAnterior)
-      : null,
+    principal: opciones.principal,
+    secundaria: opciones.secundaria ?? null,
   };
 }
 
+/**
+ * El margen y sus comparaciones.
+ *
+ * El margen ya es un porcentaje: su variación se expresa en puntos, nunca como
+ * porcentaje de un porcentaje. El margen de la media se saca de las cifras
+ * medias, no promediando márgenes, que daría más peso a los meses flojos.
+ */
 function cifraMargen(
   pyg: Pyg,
-  opciones: {
-    anioAnterior: string | null;
-    mesAnterior?: { pyg: Pyg | null; referencia: string };
-  },
+  opciones: { principal: { pyg: Pyg; referencia: string } | null; anioAnterior: string | null },
 ): Cifra | null {
   const valor = margen(pyg);
   if (valor === null) return null;
 
-  // El margen ya es un porcentaje: su variación se expresa en puntos, nunca
-  // como porcentaje de un porcentaje.
   const enPuntos = (otro: number | null, referencia: string): Comparacion | null =>
     otro === null
       ? null
@@ -337,29 +421,18 @@ function cifraMargen(
           puntos: Math.round((valor - otro) * 10) / 10,
         };
 
-  const previo = opciones.mesAnterior?.pyg
-    ? margen(opciones.mesAnterior.pyg)
-    : null;
-
   return {
     etiqueta: 'Margen',
     valor,
     formato: 'porcentaje',
     mejorSiSube: true,
-    mesAnterior: opciones.mesAnterior
-      ? enPuntos(previo, opciones.mesAnterior.referencia)
+    principal: opciones.principal
+      ? enPuntos(margen(opciones.principal.pyg), opciones.principal.referencia)
       : null,
-    anioAnterior: opciones.anioAnterior
+    secundaria: opciones.anioAnterior
       ? enPuntos(margenAnioAnterior(pyg), opciones.anioAnterior)
       : null,
   };
-}
-
-/** Cómo se nombra un período en una frase: "junio", "3T 2026". */
-function nombrePeriodo(informe: Informe): string {
-  return informe.tipoPeriodo === 'Mensual' && informe.mes
-    ? mesEnFrase(informe.mes)
-    : informe.periodo;
 }
 
 /** "julio de 2025", la referencia del mismo período del ejercicio anterior. */
@@ -371,15 +444,17 @@ function referenciaAnioAnterior(informe: Informe): string | null {
 }
 
 /**
- * Las cifras del mes aislado.
+ * Las cifras del período aislado.
  *
- * `anterior` es el informe del período anterior, y solo se usa para comparar
- * dos `pygMes` que ya ha calculado el panel: aquí no se restan acumulados.
+ * La comparación que manda es contra la media de los meses anteriores: un solo
+ * mes de referencia puede ser un mes raro, y la media dice mejor si esto es lo
+ * normal del negocio. Debajo, y solo si el informe lo trae, el mismo mes del
+ * año pasado.
+ *
+ * `informes` son todos los publicados; de ellos salen los `pygMes` que ya ha
+ * calculado el panel. Aquí no se restan acumulados en ningún caso.
  */
-export function cifrasDelMes(
-  informe: Informe,
-  anterior: Informe | null,
-): BloqueMes {
+export function cifrasDelMes(informe: Informe, informes: Informe[]): BloqueMes {
   if (informe.version === 1) {
     return {
       disponible: false,
@@ -407,41 +482,31 @@ export function cifrasDelMes(
   }
 
   const cifras = informe.pygMes.cifras;
-  const previo =
-    anterior?.pygMes?.disponible && anterior.pygMes.cifras
-      ? anterior.pygMes.cifras
-      : null;
-  // En un informe trimestral el período no es un mes, así que se nombra por su
-  // etiqueta ("3T 2026") en vez de por el mes de cierre.
-  const referenciaMes = anterior ? nombrePeriodo(anterior) : null;
-  const vsMes = previo && referenciaMes ? { referencia: referenciaMes } : null;
+  const media = mediaPrevia(informe, informes);
   const vsAnio = referenciaAnioAnterior(informe);
+
+  const contraMedia = (saca: (p: Pyg) => Metrica): Comparacion | null =>
+    media ? comparacionContra(saca(cifras), saca(media.cifras), media.referencia) : null;
 
   const lista = [
     cifraDeMetrica('Ingresos', cifras.ingresos, {
       mejorSiSube: true,
-      anioAnterior: vsAnio,
-      mesAnterior: vsMes
-        ? { metrica: previo?.ingresos, referencia: vsMes.referencia }
-        : undefined,
+      principal: contraMedia((p) => p.ingresos),
+      secundaria: comparacionAnioAnterior(cifras.ingresos, vsAnio),
     }),
     cifraDeMetrica('Gastos', cifras.gastos, {
       mejorSiSube: false,
-      anioAnterior: vsAnio,
-      mesAnterior: vsMes
-        ? { metrica: previo?.gastos, referencia: vsMes.referencia }
-        : undefined,
+      principal: contraMedia((p) => p.gastos),
+      secundaria: comparacionAnioAnterior(cifras.gastos, vsAnio),
     }),
     cifraDeMetrica('Resultado', cifras.resultado, {
       mejorSiSube: true,
-      anioAnterior: vsAnio,
-      mesAnterior: vsMes
-        ? { metrica: previo?.resultado, referencia: vsMes.referencia }
-        : undefined,
+      principal: contraMedia((p) => p.resultado),
+      secundaria: comparacionAnioAnterior(cifras.resultado, vsAnio),
     }),
     cifraMargen(cifras, {
+      principal: media ? { pyg: media.cifras, referencia: media.referencia } : null,
       anioAnterior: vsAnio,
-      mesAnterior: vsMes ? { pyg: previo, referencia: vsMes.referencia } : undefined,
     }),
   ].filter((c): c is Cifra => c !== null);
 
@@ -470,11 +535,31 @@ export function cifrasAcumulado(informe: Informe): BloqueAcumulado | null {
       : null;
 
   const cifras = [
-    cifraDeMetrica('Ingresos', ytd.ingresos, { mejorSiSube: true, anioAnterior: vsAnio }),
-    cifraDeMetrica('Gastos', ytd.gastos, { mejorSiSube: false, anioAnterior: vsAnio }),
-    cifraDeMetrica('Resultado', ytd.resultado, { mejorSiSube: true, anioAnterior: vsAnio }),
-    cifraMargen(ytd, { anioAnterior: vsAnio }),
+    cifraDeMetrica('Ingresos', ytd.ingresos, {
+      mejorSiSube: true,
+      principal: comparacionAnioAnterior(ytd.ingresos, vsAnio),
+    }),
+    cifraDeMetrica('Gastos', ytd.gastos, {
+      mejorSiSube: false,
+      principal: comparacionAnioAnterior(ytd.gastos, vsAnio),
+    }),
+    cifraDeMetrica('Resultado', ytd.resultado, {
+      mejorSiSube: true,
+      principal: comparacionAnioAnterior(ytd.resultado, vsAnio),
+    }),
+    cifraMargen(ytd, { principal: null, anioAnterior: vsAnio }),
   ].filter((c): c is Cifra => c !== null);
+
+  // El margen deja su comparación en la línea de abajo; aquí no hay dos
+  // niveles, así que sube a principal.
+  for (const c of cifras) {
+    if (c.principal === null && c.secundaria !== null) {
+      c.principal = c.secundaria;
+      c.secundaria = null;
+    }
+  }
+
+  const mesesTranscurridos = mesesDelAcumulado(informe);
 
   return {
     titulo: tituloAcumulado(informe),
@@ -488,10 +573,45 @@ export function cifrasAcumulado(informe: Informe): BloqueAcumulado | null {
               : 'Caja a cierre del ejercicio',
           }
         : null,
+    mediaMensualIngresos:
+      ytd.ingresos.found && mesesTranscurridos > 0
+        ? {
+            valor: Math.round((ytd.ingresos.actual / mesesTranscurridos) * 100) / 100,
+            etiqueta: `Media mensual de ingresos (${mesesTranscurridos} ${
+              mesesTranscurridos === 1 ? 'mes' : 'meses'
+            })`,
+          }
+        : null,
     // No basta con que el informe diga qué ejercicio es el anterior: el export
     // del autónomo trae el año pero ninguna cifra con la que comparar.
-    sinAnioAnterior: cifras.every((c) => c.anioAnterior === null),
+    sinAnioAnterior: cifras.every((c) => c.principal === null),
   };
+}
+
+/**
+ * Meses que lleva el acumulado. Sale del mes de cierre del período, que es lo
+ * que dice hasta dónde llega la suma; un informe anual son doce.
+ */
+function mesesDelAcumulado(informe: Informe): number {
+  if (informe.mes) return Number(informe.mes.slice(5, 7));
+  return informe.tipoPeriodo === 'Anual' ? 12 : 0;
+}
+
+/**
+ * Ni una sola comparación en toda la pantalla: es el primer informe del
+ * cliente y no hay contra qué medirlo.
+ */
+export function sinComparaciones(
+  mes: BloqueMes,
+  acumulado: BloqueAcumulado | null,
+): boolean {
+  const delMes = mes.disponible
+    ? mes.cifras.every((c) => c.principal === null && c.secundaria === null)
+    : true;
+  const delAcumulado = acumulado
+    ? acumulado.cifras.every((c) => c.principal === null && c.secundaria === null)
+    : true;
+  return delMes && delAcumulado;
 }
 
 function tituloAcumulado(informe: Informe): string {

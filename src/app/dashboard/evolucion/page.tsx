@@ -8,6 +8,7 @@ import {
   informesMensuales,
   serieAcumulado,
   serieBarras,
+  sinComparaciones,
 } from '@/lib/evolucion';
 import { euros } from '@/lib/fechas';
 import Chip from '@/components/Chip';
@@ -45,9 +46,8 @@ export default async function EvolucionPage() {
   // El informe que manda es el último mensual; los anuales no sustituyen al mes.
   const mensuales = informesMensuales(informes);
   const informe = mensuales[0] ?? informes[0];
-  const anterior = mensuales[1] ?? null;
 
-  const mes = cifrasDelMes(informe, anterior);
+  const mes = cifrasDelMes(informe, informes);
   const acumulado = cifrasAcumulado(informe);
   const barras = serieBarras(informes);
   const linea = serieAcumulado(informes);
@@ -60,6 +60,8 @@ export default async function EvolucionPage() {
   const hayBarras = barras.some((p) => p.ingresos !== null || p.gastos !== null);
   const faltanMeses = barras.some((p) => p.ingresos === null && p.gastos === null);
   const hayLinea = linea.some((p) => p.esteAnio !== null);
+  // Primer informe del cliente: no hay nada con lo que comparar todavía.
+  const primerInforme = sinComparaciones(mes, acumulado);
 
   return (
     <>
@@ -89,27 +91,42 @@ export default async function EvolucionPage() {
       {/* ACUMULADO DEL EJERCICIO */}
       {acumulado && (
         <section className="panel">
-          <h2 className="panel-title">{acumulado.titulo}</h2>
+          <div className={styles.tituloFila}>
+            <h2 className="panel-title">{acumulado.titulo}</h2>
+            {acumulado.sinAnioAnterior && !primerInforme && (
+              <Chip tono="neutral">Primer año con datos</Chip>
+            )}
+          </div>
           <div className={styles.cifras}>
             {acumulado.cifras.map((cifra) => (
               <TarjetaCifra key={cifra.etiqueta} cifra={cifra} />
             ))}
           </div>
 
-          {acumulado.caja && (
-            <div className={styles.caja}>
-              <span>{acumulado.caja.etiqueta}</span>
-              <b>{euros(acumulado.caja.valor)}</b>
+          {(acumulado.mediaMensualIngresos || acumulado.caja) && (
+            <div className={styles.extras}>
+              {acumulado.mediaMensualIngresos && (
+                <div className={styles.extra}>
+                  <span>{acumulado.mediaMensualIngresos.etiqueta}</span>
+                  <b>{euros(acumulado.mediaMensualIngresos.valor)}</b>
+                </div>
+              )}
+              {acumulado.caja && (
+                <div className={styles.extra}>
+                  <span>{acumulado.caja.etiqueta}</span>
+                  <b>{euros(acumulado.caja.valor)}</b>
+                </div>
+              )}
             </div>
           )}
-
-          {acumulado.sinAnioAnterior && (
-            <p className={styles.pie}>
-              Este informe no trae cifras del año pasado, así que todavía no
-              podemos compararlo.
-            </p>
-          )}
         </section>
+      )}
+
+      {primerInforme && (
+        <p className={`note ${styles.aviso}`}>
+          Este es tu primer informe. A partir del próximo mes verás cómo
+          evoluciona tu negocio.
+        </p>
       )}
 
       {/* GRÁFICAS */}

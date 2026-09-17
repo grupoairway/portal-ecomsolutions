@@ -36,6 +36,12 @@
   margin: 0;
 }
 
+/* La comparación con el año pasado va debajo y en pequeño. */
+.secundaria {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
 .cambio {
   font-weight: 600;
   color: var(--muted);

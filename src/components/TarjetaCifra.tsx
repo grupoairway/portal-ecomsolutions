@@ -17,13 +17,13 @@ export default function TarjetaCifra({ cifra }: { cifra: Cifra }) {
       <span className={styles.etiqueta}>{cifra.etiqueta}</span>
       <span className={styles.valor}>{formatear(cifra.valor, cifra.formato)}</span>
 
-      {(cifra.mesAnterior || cifra.anioAnterior) && (
+      {(cifra.principal || cifra.secundaria) && (
         <div className={styles.comparaciones}>
-          {cifra.mesAnterior && (
-            <Linea comparacion={cifra.mesAnterior} cifra={cifra} />
+          {cifra.principal && (
+            <Linea comparacion={cifra.principal} cifra={cifra} />
           )}
-          {cifra.anioAnterior && (
-            <Linea comparacion={cifra.anioAnterior} cifra={cifra} />
+          {cifra.secundaria && (
+            <Linea comparacion={cifra.secundaria} cifra={cifra} secundaria />
           )}
         </div>
       )}
@@ -34,9 +34,12 @@ export default function TarjetaCifra({ cifra }: { cifra: Cifra }) {
 function Linea({
   comparacion,
   cifra,
+  secundaria = false,
 }: {
   comparacion: Comparacion;
   cifra: Cifra;
+  /** La de abajo: el mismo período del año pasado, en pequeño. */
+  secundaria?: boolean;
 }) {
   const cambio = comparacion.puntos ?? comparacion.pct;
   const sube = cambio !== null && cambio > 0;
@@ -47,7 +50,9 @@ function Linea({
   const malo = cifra.mejorSiSube ? baja : sube;
 
   return (
-    <p className={styles.comparacion}>
+    <p
+      className={`${styles.comparacion} ${secundaria ? styles.secundaria : ''}`}
+    >
       {cambio !== null && (
         <span
           className={`${styles.cambio} ${bueno ? styles.bueno : malo ? styles.malo : ''}`}

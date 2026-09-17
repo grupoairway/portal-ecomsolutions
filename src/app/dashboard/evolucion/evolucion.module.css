@@ -4,18 +4,33 @@
   gap: 12px;
 }
 
-.caja {
+.tituloFila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Caja y media mensual: el pie del acumulado. */
+.extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 24px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.extra {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
   color: var(--muted);
 }
 
-.caja b {
+.extra b {
   font-size: 19px;
   color: var(--ink);
 }
